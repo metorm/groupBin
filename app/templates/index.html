@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>groupBin - 小组文件共享</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h1 class="card-title">groupBin</h1>
+                        <p class="card-text">小组文件临时共享平台</p>
+                        <a href="{{ url_for('group.create') }}" class="btn btn-primary btn-lg">创建新小组</a>
+                    </div>
+                </div>
+
+                {% if recent_groups %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2>最近访问的小组</h2>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% for group in recent_groups %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ group.name or group.id }}</strong>
+                                    <small class="text-muted d-block">剩余时间: {{ (group.expires_at -
+                                        datetime.utcnow()).days }}天 {{ (group.expires_at - datetime.utcnow()).seconds //
+                                        3600 }}小时</small>
+                                </div>
+                                <a href="{{ url_for('group.view', group_id=group.id) }}"
+                                    class="btn btn-outline-primary">进入</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

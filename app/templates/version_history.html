@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{ file.original_filename }} - 版本历史</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h2>{{ file.original_filename }} 的版本历史</h2>
+        <p class="text-muted">共 {{ versions|length }} 个版本</p>
+
+        <table class="table table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>版本</th>
+                    <th>上传时间</th>
+                    <th>上传者</th>
+                    <th>注释</th>
+                    <th>大小</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for version in versions %}
+                <tr>
+                    <td>v{{ loop.index }}</td>
+                    <td>{{ version.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ version.uploader }}</td>
+                    <td>{{ version.comment }}</td>
+                    <td>{{ (version.size / 1024)|round(2) }} KB</td>
+                    <td>
+                        <a href="{{ url_for('file.download_version', group_id=group_id, file_id=file.id, version_id=version.id) }}"
+                            class="btn btn-sm btn-primary">下载</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <a href="{{ url_for('group.view', group_id=group_id) }}" class="btn btn-secondary">返回小组</a>
+    </div>
+</body>
+
+</html>

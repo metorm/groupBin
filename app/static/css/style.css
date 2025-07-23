@@ -1,0 +1,48 @@
+/* 基础样式 */
+body {
+    padding-top: 20px;
+    padding-bottom: 60px;
+}
+
+/* 错误页面样式 */
+.error-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* 文件信息样式 */
+.file-info {
+    max-width: 400px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* 进度条样式 */
+.progress-container {
+    margin-top: 10px;
+    display: none;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
