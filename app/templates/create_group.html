@@ -54,11 +54,11 @@
                                 <input type="file" class="form-control" id="initialFiles" name="file" multiple>
                             </div>
 
-                            <form method="POST" action="{{ url_for('group.create') }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-primary">创建小组</button>
-                            </form>
-                            <a href="{{ url_for('main.index') }}" class="btn btn-secondary ms-2">取消</a>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">创建小组</button>
+                                <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-lg">取消</a>
+                            </div>
                         </form>
                     </div>
                 </div>

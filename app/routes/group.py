@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 import logging 
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, current_app
 from app import db
-from app.models import Group, BrowserSession
+from app.models import Group, BrowserSession, File, FileVersion  # 添加FileVersion模型导入
 from datetime import datetime, timedelta
 import string
 import random
@@ -10,6 +10,7 @@ import os
 import uuid 
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+from app.utils.file_handling import handle_file_upload 
 
 group = Blueprint('group', __name__)
 
@@ -48,9 +49,24 @@ def create():
         db.session.commit()
         
         # 创建小组文件夹
-        group_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], new_group.id)  # 将app替换为current_app
+        group_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], new_group.id)
         os.makedirs(group_folder, exist_ok=True)
+
+        # 处理上传的初始文件
+        for file in request.files.getlist('file'):
+            if file.filename:
+                # 使用公共函数处理文件上传
+                handle_file_upload(
+                    group_id=new_group.id,
+                    file=file,
+                    upload_folder=current_app.config['UPLOAD_FOLDER'],
+                    uploader='初始上传',
+                    comment='小组创建时上传'
+                )
         
+        # 提交文件记录到数据库
+        db.session.commit()
+
         # 创建响应并设置cookie
         response = make_response(redirect(url_for('group.view', group_id=new_group.id)))
         response.set_cookie('browser_id', browser_id, max_age=30*24*3600)  # 30天有效期
@@ -81,7 +97,7 @@ def view(group_id):
     # 更新最近访问时间
     browser_id = request.cookies.get('browser_id')
     current_app.logger.info(f"浏览器ID: {browser_id}")
-    response = make_response(render_template('group.html', group=group, datetime=datetime))
+    response = make_response(render_template('group.html', group=group, files=group.files, datetime=datetime))
     
     if browser_id:
         session = BrowserSession.query.filter_by(browser_id=browser_id, group_id=group_id).first()

@@ -84,7 +84,7 @@
                         <tbody>
                             {% for file in group.files %}
                             <tr>
-                                <td>
+                                <td class="align-middle">
                                     <div class="file-info">
                                         <strong>{{ file.original_filename }}</strong>
                                         {% if file.description %}
@@ -92,17 +92,20 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>{{ (file.size / 1024)|round(2) }} KB</td>
-                                <td>{{ file.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td>{{ file.versions|length }}</td>
-                                <td>
+                                <td class="align-middle">{{ (file.size / 1024)|round(2) }} KB</td>
+                                <td class="align-middle">
+                                    <span class="utc-time" data-utc="{{ file.uploaded_at.isoformat() }}Z">{{
+                                        file.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                </td>
+                                <td class="align-middle">{{ file.versions|length }}</td>
+                                <td class="align-middle">
                                     <!-- 独立按钮设计，移除按钮组容器 -->
                                     <a href="{{ url_for('file.download', group_id=group.id, file_id=file.id) }}"
                                         class="btn btn-primary btn-lg me-2">下载</a>
                                     <a href="{{ url_for('file.version_history', group_id=group.id, file_id=file.id) }}"
                                         class="btn btn-secondary btn-lg me-2">版本历史</a>
 
-                                    {% if not group.readonly %}
+                                    {% if not group.is_readonly %}
                                     <form method="POST"
                                         action="{{ url_for('file.delete_file', group_id=group.id, file_id=file.id) }}"
                                         class="d-inline">
@@ -135,6 +138,26 @@
 
     <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/group.js') }}"></script>
+    <script>
+        // 将UTC时间转换为浏览器本地时间
+        document.addEventListener('DOMContentLoaded', function () {
+            const utcElements = document.querySelectorAll('.utc-time');
+            utcElements.forEach(element => {
+                const utcTime = element.getAttribute('data-utc');
+                const date = new Date(utcTime);
+
+                // 格式化本地时间为YYYY-MM-DD HH:MM
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                const localTimeString = `${year}-${month}-${day} ${hours}:${minutes}`;
+                element.textContent = localTimeString;
+            });
+        });
+    </script>
 </body>
 
 </html>

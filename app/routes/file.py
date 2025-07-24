@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 import zipfile
 from io import BytesIO
+from app.utils.file_handling import handle_file_upload
 
 file = Blueprint('file', __name__)
 
@@ -27,57 +28,15 @@ def upload(group_id):
         return jsonify({'error': '未选择文件'}), 400
     
     if file:
-        filename = secure_filename(file.filename)
-        description = request.form.get('description', '')
-        
-        # 检查文件名是否已存在
-        existing_file = File.query.filter_by(group_id=group_id, original_filename=filename).first()
-        
-        # 生成存储文件名
-        stored_filename = str(uuid.uuid4()) + os.path.splitext(filename)[1]
-        # 生成存储路径 - 使用统一配置
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], group_id, stored_filename)
-        current_app.logger.info(f"Uploading file to: {file_path}")
-        
-        # 确保目录存在
-        os.makedirs(os.path.join(current_app.config['UPLOAD_FOLDER'], group_id), exist_ok=True)
-        
-        # 保存文件
-        file.save(file_path)
-        
-        if existing_file:
-            # 创建新版本
-            new_version = FileVersion(
-                file_id=existing_file.id,
-                stored_filename=stored_filename,
-                uploader=request.form.get('uploader', 'anonymous'),
-                comment=request.form.get('comment', ''),
-                size=os.path.getsize(file_path)
-            )
-            db.session.add(new_version)
-        else:
-            # 创建新文件
-            new_file = File(
-                group_id=group_id,
-                original_filename=filename,
-                stored_filename=stored_filename,
-                description=description,
-                size=os.path.getsize(file_path),
-                content_type=file.content_type
-            )
-            db.session.add(new_file)
-            db.session.flush()  # 刷新会话以生成新文件的ID
-            
-            # 创建初始版本
-            initial_version = FileVersion(
-                file_id=new_file.id,
-                stored_filename=stored_filename,
-                uploader=request.form.get('uploader', 'anonymous'),
-                comment='初始版本',
-                size=os.path.getsize(file_path)
-            )
-            db.session.add(initial_version)
-        
+        # 使用公共函数处理文件上传
+        handle_file_upload(
+            group_id=group_id,
+            file=file,
+            upload_folder=current_app.config['UPLOAD_FOLDER'],
+            description=request.form.get('description', ''),
+            uploader=request.form.get('uploader', 'anonymous'),
+            comment=request.form.get('comment', '常规上传')
+        )
         db.session.commit()
         return redirect(url_for('group.view', group_id=group_id))
         return jsonify({'success': True}), 201
@@ -177,6 +136,37 @@ def zip_download(group_id):
 @file.route('/version_history/<group_id>/<file_id>')
 def version_history(group_id, file_id):
     file = File.query.get_or_404(file_id)
+    group = Group.query.get_or_404(group_id)
     # 按上传时间降序排列版本
     versions = sorted(file.versions, key=lambda v: v.uploaded_at, reverse=True)
-    return render_template('version_history.html', group_id=group_id, file=file, versions=versions)
+    return render_template('version_history.html', group=group, file=file, versions=versions)
+
+@file.route('/upload_version/<group_id>/<file_id>', methods=['POST'])
+def upload_version(group_id, file_id):
+    group = Group.query.get_or_404(group_id)
+    file = File.query.get_or_404(file_id)
+    
+    # 检查小组是否只读
+    if group.is_readonly:
+        return jsonify({'error': '该小组为只读，无法上传新版本'}), 403
+    
+    if 'file' not in request.files:
+        return jsonify({'error': '未找到文件'}), 400
+    
+    file_upload = request.files['file']
+    if file_upload.filename == '':
+        return jsonify({'error': '未选择文件'}), 400
+    
+    if file_upload:
+        # 使用公共函数处理文件上传，作为新版本
+        handle_file_upload(
+            group_id=group_id,
+            file=file_upload,
+            upload_folder=current_app.config['UPLOAD_FOLDER'],
+            description=file.description,  # 保持原描述
+            uploader=request.form.get('uploader', 'anonymous'),
+            comment=request.form.get('comment', '版本更新'),
+            file_id=file_id  # 指定现有文件ID，表示版本更新
+        )
+        db.session.commit()
+        return redirect(url_for('file.version_history', group_id=group_id, file_id=file_id))

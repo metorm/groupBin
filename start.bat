@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 
 :: 检查conda环境是否存在
 conda env list | findstr /i "groupbin" >nul

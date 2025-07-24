@@ -11,6 +11,34 @@
         <h2>{{ file.original_filename }} 的版本历史</h2>
         <p class="text-muted">共 {{ versions|length }} 个版本</p>
 
+        {% if not group.is_readonly %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>上传新版本</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('file.upload_version', group_id=group.id, file_id=file.id) }}"
+                    enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label for="file">选择文件</label>
+                        <input type="file" class="form-control" id="file" name="file" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="uploader">上传者</label>
+                        <input type="text" class="form-control" id="uploader" name="uploader" placeholder="输入您的名称">
+                    </div>
+                    <div class="form-group">
+                        <label for="comment">更新注释</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3"
+                            placeholder="描述此版本的变更内容"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">上传新版本</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
         <table class="table table-striped mt-3">
             <thead>
                 <tr>
@@ -31,7 +59,7 @@
                     <td>{{ version.comment }}</td>
                     <td>{{ (version.size / 1024)|round(2) }} KB</td>
                     <td>
-                        <a href="{{ url_for('file.download_version', group_id=group_id, file_id=file.id, version_id=version.id) }}"
+                        <a href="{{ url_for('file.download_version', group_id=group.id, file_id=file.id, version_id=version.id) }}"
                             class="btn btn-sm btn-primary">下载</a>
                     </td>
                 </tr>
@@ -39,7 +67,7 @@
             </tbody>
         </table>
 
-        <a href="{{ url_for('group.view', group_id=group_id) }}" class="btn btn-secondary">返回小组</a>
+        <a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-secondary">返回小组</a>
     </div>
 </body>
 
