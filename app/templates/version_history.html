@@ -1,74 +1,67 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-    <title>{{ file.original_filename }} - 版本历史</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
+{% block title %}{{ file.original_filename }} - 版本历史 - GroupBin{% endblock %}
 
-<body>
-    <div class="container mt-5">
-        <h2>{{ file.original_filename }} 的版本历史</h2>
-        <p class="text-muted">共 {{ versions|length }} 个版本</p>
+{% block content %}
 
-        {% if not group.is_readonly %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h4>上传新版本</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('file.upload_version', group_id=group.id, file_id=file.id) }}"
-                    enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="form-group">
-                        <label for="file">选择文件</label>
-                        <input type="file" class="form-control" id="file" name="file" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="uploader">上传者</label>
-                        <input type="text" class="form-control" id="uploader" name="uploader" placeholder="输入您的名称">
-                    </div>
-                    <div class="form-group">
-                        <label for="comment">更新注释</label>
-                        <textarea class="form-control" id="comment" name="comment" rows="3"
-                            placeholder="描述此版本的变更内容"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">上传新版本</button>
-                </form>
-            </div>
-        </div>
-        {% endif %}
+<h2>{{ file.original_filename }} 的版本历史</h2>
+<p class="text-muted">共 {{ versions|length }} 个版本</p>
 
-        <table class="table table-striped mt-3">
-            <thead>
-                <tr>
-                    <th>版本</th>
-                    <th>上传时间</th>
-                    <th>上传者</th>
-                    <th>注释</th>
-                    <th>大小</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for version in versions %}
-                <tr>
-                    <td>v{{ loop.index }}</td>
-                    <td>{{ version.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>{{ version.uploader }}</td>
-                    <td>{{ version.comment }}</td>
-                    <td>{{ (version.size / 1024)|round(2) }} KB</td>
-                    <td>
-                        <a href="{{ url_for('file.download_version', group_id=group.id, file_id=file.id, version_id=version.id) }}"
-                            class="btn btn-sm btn-primary">下载</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-secondary">返回小组</a>
+{% if not group.is_readonly %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>上传新版本</h4>
     </div>
-</body>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('file.upload_version', group_id=group.id, file_id=file.id) }}"
+            enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="file">选择文件</label>
+                <input type="file" class="form-control" id="file" name="file" required>
+            </div>
+            <div class="form-group">
+                <label for="uploader">上传者</label>
+                <input type="text" class="form-control" id="uploader" name="uploader" placeholder="输入您的名称">
+            </div>
+            <div class="form-group">
+                <label for="comment">更新注释</label>
+                <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="描述此版本的变更内容"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">上传新版本</button>
+        </form>
+    </div>
+</div>
+{% endif %}
 
-</html>
+<table class="table table-striped mt-3">
+    <thead>
+        <tr>
+            <th>版本</th>
+            <th>上传时间</th>
+            <th>上传者</th>
+            <th>注释</th>
+            <th>大小</th>
+            <th>操作</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for version in versions %}
+        <tr>
+            <td>v{{ loop.revindex }}</td>
+            <td>{{ version.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ version.uploader }}</td>
+            <td>{{ version.comment }}</td>
+            <td>{{ (version.size / 1024)|round(2) }} KB</td>
+            <td>
+                <a href="{{ url_for('file.download_version', group_id=group.id, file_id=file.id, version_id=version.id) }}"
+                    class="btn btn-sm btn-primary">下载</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-secondary">返回小组</a>
+
+{% endblock %}

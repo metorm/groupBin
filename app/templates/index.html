@@ -1,53 +1,84 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>groupBin - 小组文件共享</title>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css">
-</head>
+{% block title %}GroupBin - 小组文件共享平台{% endblock %}
 
-<body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card mb-4">
-                    <div class="card-body text-center">
-                        <h1 class="card-title">groupBin</h1>
-                        <p class="card-text">小组文件临时共享平台</p>
-                        <a href="{{ url_for('group.create') }}" class="btn btn-primary btn-lg">创建新小组</a>
-                    </div>
+{% block content %}
+<div class="row justify-content-center">
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex gap-2 align-items-center">
+                <a href="{{ url_for('group.create') }}" class="btn btn-primary btn-lg">创建新小组</a>
+                <button id="joinGroupBtn" class="btn btn-secondary btn-lg">加入小组</button>
+                <div class="flex-grow-1">
+                    <input type="text" id="groupJoinInput" class="form-control" placeholder="在此处输入需要加入的小组ID">
                 </div>
-
-                {% if recent_groups %}
-                <div class="card">
-                    <div class="card-header">
-                        <h2>最近访问的小组</h2>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-group">
-                            {% for group in recent_groups %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ group.name or group.id }}</strong>
-                                    <small class="text-muted d-block">剩余时间: {{ (group.expires_at -
-                                        datetime.datetime.now(datetime.timezone.utc)).days }}天 {{ (group.expires_at -
-                                        datetime.datetime.now(datetime.timezone.utc)).seconds // 3600 }}小时</small>
-                                </div>
-                                <a href="{{ url_for('group.view', group_id=group.id) }}"
-                                    class="btn btn-outline-primary">进入</a>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
-</body>
+    {% if recent_groups %}
+    <div class="mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2>最近访问的小组</h2>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for group in recent_groups %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ group.name or group.id }}</strong>
+                            <small class="text-muted d-block">剩余时间: {{ (group.expires_at -
+                                datetime.datetime.now(datetime.timezone.utc)).days }}天 {{ (group.expires_at -
+                                datetime.datetime.now(datetime.timezone.utc)).seconds // 3600 }}小时</small>
+                        </div>
+                        <a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-outline-primary">进入</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
 
-</html>
+<script>
+    // 确保DOM加载完成后执行
+    document.addEventListener('DOMContentLoaded', function () {
+        const joinBtn = document.getElementById('joinGroupBtn');
+        const input = document.getElementById('groupJoinInput');
+
+        console.log('加入小组功能初始化 - 按钮:', joinBtn, '输入框:', input);
+
+        if (!joinBtn || !input) {
+            console.error('加入小组按钮或输入框未找到');
+            return;
+        }
+
+        joinBtn.addEventListener('click', function () {
+            console.log('加入小组按钮被点击');
+            const groupId = input.value.trim();
+            console.log('输入的小组ID:', groupId);
+
+            if (!groupId) {
+                // 添加闪烁动画效果
+                input.classList.add('is-invalid');
+                setTimeout(() => input.classList.remove('is-invalid'), 1000);
+                return;
+            }
+
+            // 直接构建小组页面URL (更可靠的实现方式)
+            const groupUrl = '/group/' + encodeURIComponent(groupId);
+            console.log('跳转到小组URL:', groupUrl);
+            window.location.href = groupUrl;
+        });
+
+        // 支持Enter键提交
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                joinBtn.click();
+            }
+        });
+    });
+</script>
+{% endblock %}

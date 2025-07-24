@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GroupBin - 小组文件共享平台{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css">
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-light bg-light mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+                <img src="{{ url_for('static', filename='svg/logo.svg') }}" width="30" height="30"
+                    class="d-inline-block align-top" alt="GroupBin Logo">
+                GroupBin
+            </a>
+        </div>
+    </nav>
+
+    <!-- 页面内容 -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">{{ config.FOOTER_TEXT }}</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // 通用UTC时间转换为本地时间函数
+    document.addEventListener('DOMContentLoaded', function() {
+        const convertUtcToLocalTime = () => {
+            const utcElements = document.querySelectorAll('.utc-time');
+            utcElements.forEach(element => {
+                const utcTime = element.getAttribute('data-utc');
+                if (!utcTime) return;
+                
+                const date = new Date(utcTime);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                
+                const localTimeString = `${year}-${month}-${day} ${hours}:${minutes}`;
+                element.textContent = localTimeString;
+            });
+        };
+        
+        // 执行转换
+        convertUtcToLocalTime();
+        
+        // 暴露全局函数供动态内容加载后调用
+        window.convertUtcToLocalTime = convertUtcToLocalTime;
+    });
+    </script>
+</body>
+
+</html>

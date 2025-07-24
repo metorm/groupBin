@@ -1,36 +1,23 @@
-﻿<!DOCTYPE html>
-<html lang="zh-CN">
+﻿{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小组已过期 - {{ config.SITE_NAME }}</title>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
+{% block title %}小组已过期 - {{ config.SITE_NAME }}{% endblock %}
 
-<body>
-    <div class="container mt-5 text-center">
-        <div class="error-container">
-            <h1 class="display-4 text-danger">小组已过期</h1>
-            <p class="lead">
-                小组 <strong>{{ group.name or group.id }}</strong> 已在 {{ group.expires_at.strftime('%Y-%m-%d %H:%M') }} 过期
-            </p>
-            <p>过期的小组及其文件已被系统自动清理。</p>
-            <div class="mt-4">
-                <a href="{{ url_for('main.index') }}" class="btn btn-primary">返回主页</a>
-                <a href="{{ url_for('group.create') }}" class="btn btn-secondary ms-2">创建新小组</a>
-            </div>
-        </div>
+{% block content %}
+
+<title></title>
+
+<div class="error-container">
+    <h1 class="display-4 text-danger">小组已过期</h1>
+    <p class="lead">
+        小组 <strong>{{ group.name or group.id }}</strong> 已在 <span class="utc-time"
+            data-utc="{{ group.expires_at.isoformat() }}">{{ group.expires_at.strftime('%Y-%m-%d %H:%M') }}</span> 过期
+    </p>
+    <p>过期的小组及其文件已被系统自动清理。</p>
+    <div class="mt-4">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">返回主页</a>
+        <a href="{{ url_for('group.create') }}" class="btn btn-secondary ms-2">创建新小组</a>
     </div>
+</div>
+</div>
 
-    <footer class="footer mt-5 py-3 bg-light fixed-bottom">
-        <div class="container text-center">
-            <span class="text-muted">{{ config.FOOTER_TEXT }}</span>
-        </div>
-    </footer>
-
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+{% endblock %}

@@ -1,34 +1,17 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小组不存在 - {{ config.SITE_NAME }}</title>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
+{% block title %}小组不存在 - {{ config.SITE_NAME }}{% endblock %}
 
-<body>
-    <div class="container mt-5 text-center">
-        <div class="error-container">
-            <h1 class="display-1">404</h1>
-            <h2>小组不存在或已过期</h2>
-            <p class="lead">您访问的小组链接可能已过期、被删除，或不存在。</p>
-            <div class="mt-4">
-                <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg">返回主页</a>
-                <a href="{{ url_for('group.create') }}" class="btn btn-secondary btn-lg ms-2">创建新小组</a>
-            </div>
-        </div>
+{% block content %}
+
+<div class="error-container">
+    <h1 class="display-1">404</h1>
+    <h2>小组不存在或已过期</h2>
+    <p class="lead">您访问的小组链接可能已过期、被删除，或不存在。</p>
+    <div class="mt-4">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg">返回主页</a>
+        <a href="{{ url_for('group.create') }}" class="btn btn-secondary btn-lg ms-2">创建新小组</a>
     </div>
+</div>
 
-    <footer class="footer mt-5 py-3 bg-light fixed-bottom">
-        <div class="container text-center">
-            <span class="text-muted">{{ config.FOOTER_TEXT }}</span>
-        </div>
-    </footer>
-
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+{% endblock %}

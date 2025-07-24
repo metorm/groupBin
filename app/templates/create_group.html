@@ -1,78 +1,57 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>创建新小组 - {{ config.SITE_NAME }}</title>
-    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
+{% block title %}创建新小组 - {{ config.SITE_NAME }}{% endblock %}
 
-<body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>创建新小组</h2>
+{% block content %}
+<div class="row justify-content-center">
+    <div class="mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h2>创建新小组</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="groupName" class="form-label">小组名称（可选）</label>
+                        <input type="text" class="form-control" id="groupName" name="group_name" placeholder="输入小组名称">
                     </div>
-                    <div class="card-body">
-                        <form method="POST" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="groupName" class="form-label">小组名称（可选）</label>
-                                <input type="text" class="form-control" id="groupName" name="group_name"
-                                    placeholder="输入小组名称">
-                            </div>
 
-                            <div class="mb-3">
-                                <label for="duration" class="form-label">小组有效期</label>
-                                <select class="form-select" id="duration" name="duration" required>
-                                    <option value="1">1小时</option>
-                                    <option value="8">8小时</option>
-                                    <option value="24">1天</option>
-                                    <option value="72" selected>3天</option>
-                                    <option value="168">7天</option>
-                                    <option value="504">21天</option>
-                                    <option value="720">30天</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="password" class="form-label">访问密码（可选）</label>
-                                <input type="password" class="form-control" id="password" name="password"
-                                    placeholder="留空则无需密码">
-                            </div>
-
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="isReadonly" name="is_readonly">
-                                <label class="form-check-label" for="isReadonly">只读小组（禁止后续上传和修改）</label>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="initialFiles" class="form-label">初始文件上传（可选）</label>
-                                <input type="file" class="form-control" id="initialFiles" name="file" multiple>
-                            </div>
-
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg">创建小组</button>
-                                <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-lg">取消</a>
-                            </div>
-                        </form>
+                    <div class="mb-3">
+                        <label for="duration" class="form-label">小组有效期</label>
+                        <select class="form-select" id="duration" name="duration" required>
+                            <option value="1">1小时</option>
+                            <option value="8">8小时</option>
+                            <option value="24">1天</option>
+                            <option value="72" selected>3天</option>
+                            <option value="168">7天</option>
+                            <option value="504">21天</option>
+                            <option value="720">30天</option>
+                        </select>
                     </div>
-                </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">访问密码（可选）</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="留空则无需密码">
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isReadonly" name="is_readonly">
+                        <label class="form-check-label" for="isReadonly">只读小组（禁止后续上传和修改）</label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="initialFiles" class="form-label">初始文件上传（可选）</label>
+                        <input type="file" class="form-control" id="initialFiles" name="file" multiple>
+                    </div>
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">创建小组</button>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-lg">取消</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-
-    <footer class="footer mt-5 py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">{{ config.FOOTER_TEXT }}</span>
-        </div>
-    </footer>
-
-    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.7/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+</div>
+{% endblock %}
