@@ -20,4 +20,12 @@
 </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
+<script>
+    // 从历史记录中移除过期小组
+    document.addEventListener('DOMContentLoaded', function () {
+        const groupId = '{{ group.id }}';
+        GroupHistoryManager.handleGroupError(groupId);
+    });
+</script>
 {% endblock %}

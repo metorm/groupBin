@@ -16,39 +16,89 @@
         </div>
     </div>
 
-    {% if recent_groups %}
-    <div class="mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2>最近访问的小组</h2>
-            </div>
-            <div class="card-body">
-                <ul class="list-group">
-                    {% for group in recent_groups %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ group.name or group.id }}</strong>
-                            <small class="text-muted d-block">剩余时间: {{ (group.expires_at -
-                                datetime.datetime.now(datetime.timezone.utc)).days }}天 {{ (group.expires_at -
-                                datetime.datetime.now(datetime.timezone.utc)).seconds // 3600 }}小时</small>
-                        </div>
-                        <a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-outline-primary">进入</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">最近访问的小组</h5>
+        </div>
+        <div class="card-body">
+            <!-- 添加历史记录容器 -->
+            <div id="recent-groups-container"><!-- 历史记录将通过JS动态渲染 --></div>
         </div>
     </div>
-    {% endif %}
+
 </div>
 
+<script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
+<script>
+    // 加载小组历史记录并渲染
+    document.addEventListener('DOMContentLoaded', function () {
+        // console.log('[Index] 开始执行历史记录渲染逻辑');
+
+        const historyContainer = document.getElementById('recent-groups-container');
+
+        if (!historyContainer) {
+            console.error('[Index] 未找到历史记录容器元素');
+            return;
+        }
+
+        try {
+            // 获取历史记录
+            const history = GroupHistoryManager.getHistory();
+            // console.log('[Index] 从cookie读取的历史记录:', history);
+
+            // 检查历史记录是否为空
+            if (!history || history.length === 0) {
+                console.log('[Index] 历史记录为空，显示默认提示');
+                historyContainer.innerHTML = '<p class="text-muted">暂无访问记录</p>';
+                return;
+            }
+
+            // 构建历史记录HTML
+            // console.log('[Index] 开始构建历史记录HTML，共', history.length, '条记录');
+            let historyHtml = '<ul class="list-group">';
+
+            history.forEach((item, index) => {
+                // console.log('[Index] 处理历史记录项', index, ':', item);
+
+                // 检查记录完整性
+                if (!item.id || !item.expiresAt) {
+                    console.warn('[Index] 跳过不完整的历史记录项:', item);
+                    return;
+                }
+
+                // 格式化过期时间
+                const expiresDate = new Date(item.expiresAt);
+                const now = new Date();
+                const isExpired = expiresDate < now;
+
+                historyHtml += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center ${isExpired ? 'text-muted' : ''}">
+                        <div>
+                            <a href="/group/${item.id}" class="${isExpired ? 'text-muted' : 'text-primary'}">
+                                ${item.name || '未命名小组'}
+                            </a>
+                            ${isExpired ? '<span class="badge bg-secondary ms-2">已过期</span>' : ''}
+                        </div>
+                        <small>${isExpired ? '已过期' : `剩余 ${Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24))} 天`}</small>
+                    </li>
+                `;
+            });
+
+            historyHtml += '</ul>';
+            // console.log('[Index] 历史记录HTML构建完成:', historyHtml);
+            historyContainer.innerHTML = historyHtml;
+            // console.log('[Index] 历史记录渲染成功');
+
+        } catch (error) {
+            console.error('[Index] 历史记录渲染失败:', error);
+        }
+    });
+</script>
 <script>
     // 确保DOM加载完成后执行
     document.addEventListener('DOMContentLoaded', function () {
         const joinBtn = document.getElementById('joinGroupBtn');
         const input = document.getElementById('groupJoinInput');
-
-        console.log('加入小组功能初始化 - 按钮:', joinBtn, '输入框:', input);
 
         if (!joinBtn || !input) {
             console.error('加入小组按钮或输入框未找到');
@@ -56,9 +106,9 @@
         }
 
         joinBtn.addEventListener('click', function () {
-            console.log('加入小组按钮被点击');
+            // console.log('加入小组按钮被点击');
             const groupId = input.value.trim();
-            console.log('输入的小组ID:', groupId);
+            // console.log('输入的小组ID:', groupId);
 
             if (!groupId) {
                 // 添加闪烁动画效果
@@ -69,7 +119,7 @@
 
             // 直接构建小组页面URL (更可靠的实现方式)
             const groupUrl = '/group/' + encodeURIComponent(groupId);
-            console.log('跳转到小组URL:', groupUrl);
+            // console.log('跳转到小组URL:', groupUrl);
             window.location.href = groupUrl;
         });
 

@@ -119,5 +119,20 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/group.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/group.js') }}"></script>
+<script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
+<script>
+    // 页面加载完成后初始化小组访问记录
+    document.addEventListener('DOMContentLoaded', function () {
+        // 获取当前小组信息
+        const groupInfo = {
+            id: '{{ group.id }}',
+            name: '{{ group.name or group.id }}',
+            expiresAt: '{{ group.expires_at.isoformat() }}'
+        };
+
+        // 更新访问历史
+        GroupHistoryManager.updateHistory(groupInfo);
+    });
+</script>
 {% endblock %}

@@ -57,15 +57,6 @@ class FileVersion(db.Model):
     comment = db.Column(db.Text, nullable=True)
     size = db.Column(db.Integer, nullable=False)  # 文件大小（字节）
 
-# 为了跟踪浏览器中的小组访问
-class BrowserSession(db.Model):
-    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    browser_id = db.Column(db.String(100), nullable=False)  # 可以使用浏览器指纹或cookie值
-    group_id = db.Column(db.String(36), db.ForeignKey('group.id'), nullable=False)
-    last_accessed = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    group = db.relationship('Group', backref='sessions')
-
 # 用户模拟类（实际项目中可能不需要，因为小组链接和密码就是访问凭证）
 class User(UserMixin):
     def __init__(self, group_id):

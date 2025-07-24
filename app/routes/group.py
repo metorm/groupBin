@@ -4,7 +4,7 @@ import datetime
 from datetime import timedelta, timezone
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, current_app
 from app import db
-from app.models import Group, BrowserSession, File, FileVersion  # 添加FileVersion模型导入
+from app.models import Group, File, FileVersion  # 添加FileVersion模型导入
 import string
 import random
 import os
@@ -38,17 +38,7 @@ def create():
         # 保存到数据库
         db.session.add(new_group)
         db.session.commit()
-        
-        # 处理浏览器会话
-        browser_id = request.cookies.get('browser_id')
-        if not browser_id:
-            browser_id = str(uuid.uuid4())
-        
-        # 添加到浏览器会话
-        new_session = BrowserSession(browser_id=browser_id, group_id=new_group.id)
-        db.session.add(new_session)
-        db.session.commit()
-        
+       
         # 创建小组文件夹
         group_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], new_group.id)
         os.makedirs(group_folder, exist_ok=True)
@@ -68,12 +58,8 @@ def create():
         # 提交文件记录到数据库
         db.session.commit()
 
-        # 创建响应并设置cookie
-        response = make_response(redirect(url_for('group.view', group_id=new_group.id)))
-        response.set_cookie('browser_id', browser_id, max_age=30*24*3600)  # 30天有效期
-        
-        return response
-    
+        return redirect(url_for('group.view', group_id=new_group.id))
+
     # GET请求显示创建表单
     return render_template('create_group.html')
 
@@ -94,29 +80,9 @@ def view(group_id):
     if is_expired:
         current_app.logger.warning(f"小组已过期，重定向到过期页面: {group_id}")
         return render_template('group_expired.html', group=group)
-    
-    # 更新最近访问时间
-    browser_id = request.cookies.get('browser_id')
-    current_app.logger.info(f"浏览器ID: {browser_id}")
-    response = make_response(render_template('group.html', group=group, files=group.files, datetime=datetime))
-    
-    if browser_id:
-        session = BrowserSession.query.filter_by(browser_id=browser_id, group_id=group_id).first()
-        current_app.logger.info(f"找到会话: {session.id if session else 'None'}")
-        if session:
-            session.last_accessed = datetime.datetime.now(timezone.utc)
-            db.session.commit()
-            current_app.logger.info(f"更新会话访问时间: {session.id}")
-    else:
-        browser_id = str(uuid.uuid4())
-        response.set_cookie('browser_id', browser_id, max_age=30*24*3600)
-        new_session = BrowserSession(browser_id=browser_id, group_id=group_id)
-        db.session.add(new_session)
-        db.session.commit()
-        current_app.logger.info(f"创建新会话: {browser_id}")
-    
+
     current_app.logger.info(f"准备渲染小组页面: {group_id}")
-    return response
+    return render_template('group.html', group=group, files=group.files, datetime=datetime)
 
 @group.route('/<group_id>/refresh')
 def refresh(group_id):

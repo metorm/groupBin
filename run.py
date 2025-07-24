@@ -10,4 +10,4 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-from app.models import Group, File, FileVersion, BrowserSession
+from app.models import Group, File, FileVersion

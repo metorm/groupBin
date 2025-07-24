@@ -14,4 +14,15 @@
     </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
+<script>
+    // 从URL获取小组ID并从历史记录中移除
+    document.addEventListener('DOMContentLoaded', function () {
+        const pathParts = window.location.pathname.split('/');
+        if (pathParts[1] === 'group' && pathParts[2]) {
+            const groupId = pathParts[2];
+            GroupHistoryManager.handleGroupError(groupId);
+        }
+    });
+</script>
 {% endblock %}
