@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app import db, login_manager
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -7,8 +7,8 @@ import uuid
 class Group(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(100), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(hours=72))  # 默认3天
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(hours=72))  # Default 3 days
     password_hash = db.Column(db.String(128), nullable=True)
     is_readonly = db.Column(db.Boolean, default=False)
     created_duration_hours = db.Column(db.Integer, default=72)  # 创建时设置的有效期（小时）
@@ -27,11 +27,14 @@ class Group(db.Model):
         return check_password_hash(self.password_hash, password)
 
     def is_expired(self):
-        # 确认使用UTC时间比较
-        return datetime.utcnow() > self.expires_at
+        # 确保expires_at是时区感知的UTC时间
+        if self.expires_at.tzinfo is None:
+            # 为旧记录添加时区信息
+            self.expires_at = self.expires_at.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > self.expires_at
 
     def refresh_expiration(self):
-        self.expires_at = datetime.utcnow() + timedelta(hours=self.created_duration_hours)
+        self.expires_at = datetime.now(timezone.utc) + timedelta(hours=self.created_duration_hours)
 
 class File(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))

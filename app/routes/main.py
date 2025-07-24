@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from app import db
 from app.models import Group, BrowserSession
-from datetime import datetime 
+import datetime 
 import uuid
 
 main = Blueprint('main', __name__)

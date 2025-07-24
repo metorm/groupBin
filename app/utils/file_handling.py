@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.utils import secure_filename
 from app import db
 from app.models import File, FileVersion
@@ -30,7 +30,7 @@ def handle_file_upload(group_id, file, upload_folder, description='', uploader='
             file_id=existing_file.id,
             stored_filename=stored_filename,
             size=file_size,
-            uploaded_at=datetime.utcnow(),
+            uploaded_at=datetime.now(timezone.utc),
             uploader=uploader,
             comment=comment
         )
@@ -45,7 +45,7 @@ def handle_file_upload(group_id, file, upload_folder, description='', uploader='
             stored_filename=stored_filename,
             size=file_size,
             content_type=file.content_type,
-            uploaded_at=datetime.utcnow(),
+            uploaded_at=datetime.now(timezone.utc),
             description=description
         )
         db.session.add(new_file)
@@ -56,7 +56,7 @@ def handle_file_upload(group_id, file, upload_folder, description='', uploader='
             file_id=new_file.id,
             stored_filename=stored_filename,
             size=file_size,
-            uploaded_at=datetime.utcnow(),
+            uploaded_at=datetime.now(timezone.utc),
             uploader=uploader,
             comment=comment
         )

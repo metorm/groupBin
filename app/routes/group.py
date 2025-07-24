@@ -1,9 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
 import logging 
+import datetime
+from datetime import timedelta, timezone
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, current_app
 from app import db
 from app.models import Group, BrowserSession, File, FileVersion  # 添加FileVersion模型导入
-from datetime import datetime, timedelta
 import string
 import random
 import os
@@ -27,7 +28,7 @@ def create():
         new_group = Group(
             name=group_name,
             created_duration_hours=duration_hours,
-            expires_at=datetime.utcnow() + timedelta(hours=duration_hours),
+            expires_at=datetime.datetime.now(timezone.utc) + timedelta(hours=duration_hours),
             is_readonly=is_readonly
         )
         
@@ -81,7 +82,7 @@ def view(group_id):
     # 添加详细日志
     current_app.logger.info(f"访问小组页面 - group_id: {group_id}")
     current_app.logger.info(f"请求来源: {request.referrer}")
-    current_app.logger.info(f"当前时间: {datetime.utcnow()}")
+    current_app.logger.info(f"当前时间: {datetime.datetime.now(timezone.utc)}")
     
     group = Group.query.get_or_404(group_id)
     current_app.logger.info(f"找到小组: {group.id}, 名称: {group.name}, 创建时间: {group.created_at}, 过期时间: {group.expires_at}")
@@ -103,7 +104,7 @@ def view(group_id):
         session = BrowserSession.query.filter_by(browser_id=browser_id, group_id=group_id).first()
         current_app.logger.info(f"找到会话: {session.id if session else 'None'}")
         if session:
-            session.last_accessed = datetime.utcnow()
+            session.last_accessed = datetime.datetime.now(timezone.utc)
             db.session.commit()
             current_app.logger.info(f"更新会话访问时间: {session.id}")
     else:
