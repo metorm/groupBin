@@ -5,14 +5,14 @@ dependencies:
   - python=3.9
   - pip
   - pip:
-      - flask==2.3.3
-      - flask-sqlalchemy==3.1.1
-      - flask-login==0.6.3
-      - werkzeug==2.3.7
-      - python-dotenv==1.0.0
-      - flask-cors==4.0.0
-      - gunicorn==21.2.0
-      - pycryptodome==3.19.0
-      - python-multipart==0.0.6
-      - tqdm==4.66.1
+      - flask
+      - flask-sqlalchemy
+      - flask-login
+      - werkzeug
+      - python-dotenv
+      - flask-cors
+      - gunicorn
+      - pycryptodome
+      - python-multipart
+      - tqdm
       - flask-wtf

@@ -24,14 +24,16 @@ login_manager.login_view = 'auth.login'
 # 添加日志配置
 def setup_logging(app):
     # 设置日志级别
-    app.logger.setLevel(logging.INFO)
+    # 从配置中获取日志级别，默认为INFO
+    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'WARNING').upper(), logging.INFO)
+    app.logger.setLevel(log_level)
     
     # 创建控制台处理器
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(log_level)
     
     # 设置日志格式
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s : %(message)s')
     console_handler.setFormatter(formatter)
     
     # 添加处理器
@@ -43,15 +45,8 @@ def create_app(config_name=None):
         config_name = os.environ.get('FLASK_CONFIG', 'default')
     
     app = Flask(__name__)
-    app.config.from_object(config[config_name]) 
-    
-    # 配置
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-key-for-development-only')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///groupbin.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
-    
+    app.config.from_object(config[config_name])  # 从配置对象加载配置
+   
     # 初始化日志
     setup_logging(app)
     app.logger.info('Application initialized with config: %s', config_name)
