@@ -15,6 +15,8 @@ class Config:
     if not os.path.isabs(UPLOAD_FOLDER):
         UPLOAD_FOLDER = os.path.abspath(os.path.join(os.getcwd(), UPLOAD_FOLDER))
     MAX_CONTENT_LENGTH = int(os.getenv('MAX_UPLOAD_SIZE_MB')) * 1024 * 1024  # 从MB转换为字节
+    # 分片大小配置
+    CHUNK_SIZE = int(os.getenv('CHUNK_SIZE_MB', 5)) * 1024 * 1024  # 从MB转换为字节
 
     # 小组配置
     MAX_RECENT_GROUPS = int(os.getenv('MAX_RECENT_GROUPS'))

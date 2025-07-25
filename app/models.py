@@ -11,8 +11,9 @@ class Group(db.Model):
     expires_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(hours=72))  # Default 3 days
     password_hash = db.Column(db.String(128), nullable=True)
     is_readonly = db.Column(db.Boolean, default=False)
-    created_duration_hours = db.Column(db.Integer, default=72)  # 创建时设置的有效期（小时）
-    creator = db.Column(db.String(100), nullable=True)  # 新增创建者字段
+    created_duration_hours = db.Column(db.Integer, default=72)
+    creator = db.Column(db.String(100), nullable=True) 
+    allow_convert_to_readonly = db.Column(db.Boolean, default=False) 
     
     files = db.relationship('File', backref='group', lazy=True, cascade="all, delete-orphan")
     

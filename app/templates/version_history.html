@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_upload_form.html" import render_upload_form %}
 
 {% block title %}{{ file.original_filename }} - 版本历史 - GroupBin{% endblock %}
 
@@ -13,23 +14,14 @@
         <h4>上传新版本</h4>
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ url_for('file.upload_version', group_id=group.id, file_id=file.id) }}"
-            enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="mb-3">
-                <label for="file">选择文件</label>
-                <input type="file" class="form-control" id="file" name="file" required>
-            </div>
-            <div class="mb-3">
-                <label for="uploader">上传者</label>
-                <input type="text" class="form-control" id="uploader" name="uploader" placeholder="输入您的名称">
-            </div>
-            <div class="mb-3">
-                <label for="comment">版本说明</label>
-                <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="描述此版本的变更内容"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">上传新版本</button>
-        </form>
+        {{ render_upload_form(
+        action_url=url_for('file.upload_version', group_id=group.id, file_id=file.id),
+        button_text='上传新版本',
+        allow_multiple=false,
+        show_uploader=true,
+        show_description=false,
+        show_comment=true
+        ) }}
     </div>
 </div>
 {% endif %}
@@ -63,5 +55,7 @@
 </table>
 
 <a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-secondary">返回小组</a>
+
+<script src="{{ url_for('static', filename='js/groupbin.js') }}"></script>
 
 {% endblock %}

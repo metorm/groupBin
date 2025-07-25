@@ -12,34 +12,77 @@ from app.utils.file_handling import handle_file_upload
 
 file = Blueprint('file', __name__)
 
+def handle_upload_common(group, file=None, redirect_endpoint=None, redirect_params=None):
+    # 检查小组是否只读
+    if group.is_readonly:
+        return jsonify({
+            'error': 'permission_denied',
+            'message': '该小组为只读，无法上传文件',
+            'group_id': group.id,
+            'is_readonly': True
+        }), 403
+    
+    if 'file' not in request.files:
+        return jsonify({
+            'error': 'no_file',
+            'message': '未找到文件',
+            'group_id': group.id
+        }), 400
+    
+    file_upload = request.files['file']
+    if file_upload.filename == '':
+        return jsonify({
+            'error': 'empty_filename',
+            'message': '未选择文件',
+            'group_id': group.id
+        }), 400
+    
+    if file_upload:
+        # 准备handle_file_upload参数
+        upload_kwargs = {
+            'group_id': group.id,
+            'file': file_upload,
+            'upload_folder': current_app.config['UPLOAD_FOLDER'],
+            'uploader': request.form.get('uploader', 'anonymous')
+        }
+        
+        # 根据是否为新文件设置不同参数
+        if file:
+            # 版本上传
+            upload_kwargs['file_id'] = file.id
+            upload_kwargs['description'] = file.description
+            upload_kwargs['comment'] = request.form.get('comment', '版本更新')
+        else:
+            # 新文件上传
+            upload_kwargs['description'] = request.form.get('description', '')
+            upload_kwargs['comment'] = request.form.get('comment', '常规上传')
+        
+        # 处理文件上传
+        new_file = handle_file_upload(**upload_kwargs)  # Capture the returned file object
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': '文件上传成功',
+            'file_id': new_file.id if not file else file.id,
+            'group_id': group.id
+        }), 200 if file else 201
+    
+    return jsonify({
+        'error': 'upload_failed',
+        'message': '文件上传失败',
+        'group_id': group.id
+    }), 500
+
+
 @file.route('/upload/<group_id>', methods=['POST'])
 def upload(group_id):
     group = Group.query.get_or_404(group_id)
-    
-    # 检查小组是否只读
-    if group.is_readonly:
-        return jsonify({'error': '该小组为只读，无法上传文件'}), 403
-    
-    if 'file' not in request.files:
-        return jsonify({'error': '未找到文件'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': '未选择文件'}), 400
-    
-    if file:
-        # 使用公共函数处理文件上传
-        handle_file_upload(
-            group_id=group_id,
-            file=file,
-            upload_folder=current_app.config['UPLOAD_FOLDER'],
-            description=request.form.get('description', ''),
-            uploader=request.form.get('uploader', 'anonymous'),
-            comment=request.form.get('comment', '常规上传')
-        )
-        db.session.commit()
-        return redirect(url_for('group.view', group_id=group_id))
-        return jsonify({'success': True}), 201
+    return handle_upload_common(
+        group=group,
+        redirect_endpoint='group.view',
+        redirect_params={'group_id': group_id}
+    )
 
 @file.route('/download/<group_id>/<file_id>')
 def download(group_id, file_id):
@@ -145,28 +188,9 @@ def version_history(group_id, file_id):
 def upload_version(group_id, file_id):
     group = Group.query.get_or_404(group_id)
     file = File.query.get_or_404(file_id)
-    
-    # 检查小组是否只读
-    if group.is_readonly:
-        return jsonify({'error': '该小组为只读，无法上传新版本'}), 403
-    
-    if 'file' not in request.files:
-        return jsonify({'error': '未找到文件'}), 400
-    
-    file_upload = request.files['file']
-    if file_upload.filename == '':
-        return jsonify({'error': '未选择文件'}), 400
-    
-    if file_upload:
-        # 使用公共函数处理文件上传，作为新版本
-        handle_file_upload(
-            group_id=group_id,
-            file=file_upload,
-            upload_folder=current_app.config['UPLOAD_FOLDER'],
-            description=file.description,  # 保持原描述
-            uploader=request.form.get('uploader', 'anonymous'),
-            comment=request.form.get('comment', '版本更新'),
-            file_id=file_id  # 指定现有文件ID，表示版本更新
-        )
-        db.session.commit()
-        return redirect(url_for('file.version_history', group_id=group_id, file_id=file_id))
+    return handle_upload_common(
+        group=group,
+        file=file,
+        redirect_endpoint='file.version_history',
+        redirect_params={'group_id': group_id, 'file_id': file_id}
+    )

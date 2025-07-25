@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_upload_form.html" import render_upload_form %}
 
 {% block title %}创建新小组 - {{ config.SITE_NAME }}{% endblock %}
 
@@ -10,7 +11,7 @@
                 <h2>创建新小组</h2>
             </div>
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" class="create-group-form">
                     <div class="mb-3">
                         <label for="groupName" class="form-label">小组名称</label>
                         <input type="text" class="form-control" id="groupName" name="group_name" placeholder="输入小组名称">
@@ -41,13 +42,9 @@
                     </div>
 
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="isReadonly" name="is_readonly">
-                        <label class="form-check-label" for="isReadonly">只读小组（禁止后续上传和修改）</label>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="initialFiles" class="form-label">初始文件上传（可选）</label>
-                        <input type="file" class="form-control" id="initialFiles" name="file" multiple>
+                        <input type="checkbox" class="form-check-input" id="allowConvertToReadonly"
+                            name="allow_convert_to_readonly">
+                        <label class="form-check-label" for="allowConvertToReadonly">允许转为只读小组</label>
                     </div>
 
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -60,4 +57,7 @@
         </div>
     </div>
 </div>
+
+<script src="{{ url_for('static', filename='js/groupbin.js') }}"></script>
+
 {% endblock %}

@@ -1,0 +1,40 @@
+{% macro render_upload_form(action_url, button_text, allow_multiple=false, show_uploader=true, default_uploader='',
+show_description=true, show_comment=true) %}
+<form class="upload-form" method="POST" action="{{ action_url }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="mb-3">
+        <label for="fileUpload" class="form-label">选择文件</label>
+        <input type="file" class="form-control" id="fileUpload" name="file" required {% if allow_multiple %}multiple{%
+            endif %}>
+    </div>
+
+    {% if show_description %}
+    <div class="mb-3">
+        <label for="description" class="form-label">文件描述</label>
+        <textarea class="form-control" id="description" name="description" rows="2" placeholder="输入文件描述..."></textarea>
+    </div>
+    {% endif %}
+
+    {% if show_uploader %}
+    <div class="mb-3">
+        <label for="uploaderName" class="form-label">上传者</label>
+        <input type="text" class="form-control" id="uploaderName" name="uploader" placeholder="您的名称或标识"
+            value="{{ default_uploader }}">
+    </div>
+    {% else %}
+    <input type="hidden" name="uploader" value="{{ default_uploader }}">
+    {% endif %}
+
+    {% if show_comment %}
+    <div class="mb-3">
+        <label for="versionComment" class="form-label">版本说明</label>
+        <textarea class="form-control" id="versionComment" name="comment" rows="2"></textarea>
+    </div>
+    {% endif %}
+
+    {% if button_text %}
+    <button type="submit" class="btn btn-primary">{{ button_text }}</button>
+    {% endif %}
+</form>
+{% endmacro %}

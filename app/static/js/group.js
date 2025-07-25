@@ -161,22 +161,6 @@ export function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// 辅助函数：获取Cookie
-export function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
 // 辅助函数：显示通知
 export function showNotification(message, type = 'info') {
     // 创建通知元素

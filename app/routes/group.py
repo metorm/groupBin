@@ -22,15 +22,16 @@ def create():
         group_name = request.form.get('group_name', '')
         duration_hours = int(request.form.get('duration', 72))
         password = request.form.get('password', '')
-        is_readonly = request.form.get('is_readonly') == 'on'
+        allow_convert_to_readonly = request.form.get('allow_convert_to_readonly') == 'on'
         
         # 创建新小组
         new_group = Group(
             name=group_name,
             created_duration_hours=duration_hours,
             expires_at=datetime.datetime.now(timezone.utc) + timedelta(hours=duration_hours),
-            is_readonly=is_readonly,
-            creator=request.form.get('creator', '')  # 保存创建者信息
+            is_readonly=False,  # 初始为可写
+            allow_convert_to_readonly=allow_convert_to_readonly,
+            creator=request.form.get('creator', '')
         )
         
         # 设置密码
@@ -44,45 +45,30 @@ def create():
         group_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], new_group.id)
         os.makedirs(group_folder, exist_ok=True)
 
-        # 处理上传的初始文件
-        for file in request.files.getlist('file'):
-            if file.filename:
-                # 使用公共函数处理文件上传
-                handle_file_upload(
-                    group_id=new_group.id,
-                    file=file,
-                    upload_folder=current_app.config['UPLOAD_FOLDER'],
-                    uploader=new_group.creator or '匿名',  # 使用创建者作为初始文件上传者
-                    comment='小组创建时上传'
-                )
-        
-        # 提交文件记录到数据库
-        db.session.commit()
-
         return redirect(url_for('group.view', group_id=new_group.id))
-
+    
     # GET请求显示创建表单
     return render_template('create_group.html')
 
 @group.route('/<group_id>')
 def view(group_id):
     # 添加详细日志
-    current_app.logger.info(f"访问小组页面 - group_id: {group_id}")
-    current_app.logger.info(f"请求来源: {request.referrer}")
-    current_app.logger.info(f"当前时间: {datetime.datetime.now(timezone.utc)}")
+    #current_app.logger.info(f"访问小组页面 - group_id: {group_id}")
+    #current_app.logger.info(f"请求来源: {request.referrer}")
+    #current_app.logger.info(f"当前时间: {datetime.datetime.now(timezone.utc)}")
     
     group = Group.query.get_or_404(group_id)
-    current_app.logger.info(f"找到小组: {group.id}, 名称: {group.name}, 创建时间: {group.created_at}, 过期时间: {group.expires_at}")
+    #current_app.logger.info(f"找到小组: {group.id}, 名称: {group.name}, 创建时间: {group.created_at}, 过期时间: {group.expires_at}")
     
     # 检查是否过期
     is_expired = group.is_expired()
-    current_app.logger.info(f"小组是否过期: {is_expired}")
+    #current_app.logger.info(f"小组是否过期: {is_expired}")
     
     if is_expired:
         current_app.logger.warning(f"小组已过期，重定向到过期页面: {group_id}")
         return render_template('group_expired.html', group=group)
 
-    current_app.logger.info(f"准备渲染小组页面: {group_id}")
+    #current_app.logger.info(f"准备渲染小组页面: {group_id}")
     return render_template('group.html', group=group, files=group.files, datetime=datetime)
 
 @group.route('/<group_id>/refresh')
@@ -92,3 +78,23 @@ def refresh(group_id):
     db.session.commit()
     flash('小组有效期已刷新', 'success')
     return redirect(url_for('group.view', group_id=group_id))
+
+@group.route('/<group_id>/convert-to-readonly', methods=['POST'])
+def convert_to_readonly(group_id):
+    group = Group.query.get_or_404(group_id)
+    
+    # 检查是否允许转换且当前不是只读
+    if not group.allow_convert_to_readonly or group.is_readonly:
+        return jsonify({
+            'success': False,
+            'message': '无法转换为只读小组'
+        }), 400
+    
+    # 执行转换
+    group.is_readonly = True
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': '小组已成功转换为只读状态'
+    })

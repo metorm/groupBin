@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% from "_upload_form.html" import render_upload_form %}
+
 {% block title %}{{ group.name or group.id }} - GroupBin{% endblock %}
 
 {% block content %}
@@ -14,6 +16,12 @@
         <p class="text-danger expiration-time" data-expires-at="{{ group.expires_at.isoformat() }}"></p>
         <a href="{{ url_for('group.refresh', group_id=group.id) }}" class="btn btn-sm btn-outline-secondary">刷新有效期</a>
     </div>
+
+    {% if group.allow_convert_to_readonly and not group.is_readonly %}
+    <div class="mb-3">
+        <button id="convertToReadonlyBtn" class="btn btn-warning">转为只读小组</button>
+    </div>
+    {% endif %}
 </div>
 
 {% if not group.is_readonly %}
@@ -22,33 +30,14 @@
         <h2>上传文件</h2>
     </div>
     <div class="card-body">
-        <form id="uploadForm" method="POST" action="{{ url_for('file.upload', group_id=group.id) }}"
-            enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="mb-3">
-                <label for="fileUpload" class="form-label">选择文件</label>
-                <input type="file" class="form-control" id="fileUpload" name="file" required multiple>
-            </div>
-
-            <div class="mb-3" id="fileDescriptions">
-                <div class="mb-2">
-                    <label class="form-label">文件描述</label>
-                    <textarea class="form-control" name="description" rows="2" placeholder="输入文件描述..."></textarea>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label for="uploaderName" class="form-label">上传者</label>
-                <input type="text" class="form-control" id="uploaderName" name="uploader" placeholder="您的名称或标识">
-            </div>
-
-            <div class="mb-3" id="versionCommentContainer">
-                <label for="versionComment" class="form-label">版本说明</label>
-                <textarea class="form-control" id="versionComment" name="comment" rows="2"></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-primary">上传文件</button>
-        </form>
+        {{ render_upload_form(
+        action_url=url_for('file.upload', group_id=group.id),
+        button_text='上传文件',
+        allow_multiple=true,
+        show_uploader=true,
+        show_description=true,
+        show_comment=true
+        ) }}
     </div>
 </div>
 {% endif %}
@@ -121,10 +110,11 @@
     </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/groupbin.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/group.js') }}"></script>
 <script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
 <script>
-    // 页面加载完成后初始化小组访问记录
+    // 页面加载完成后更新小组访问记录
     document.addEventListener('DOMContentLoaded', function () {
         // 获取当前小组信息
         const groupInfo = {
@@ -137,4 +127,33 @@
         GroupHistoryManager.updateHistory(groupInfo);
     });
 </script>
+
+<script>
+    // ... existing code ...
+    document.getElementById('convertToReadonlyBtn')?.addEventListener('click', async function () {
+        if (confirm('确定要将小组转为只读状态吗？此操作不可逆转！')) {
+            try {
+                const response = await fetch("{{ url_for('group.convert_to_readonly', group_id=group.id) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('小组已成功转为只读状态');
+                    window.location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('转换失败:', error);
+                alert('转换失败，请重试');
+            }
+        }
+    });
+</script>
+
 {% endblock %}

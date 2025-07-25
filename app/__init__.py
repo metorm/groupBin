@@ -63,11 +63,10 @@ def create_app(config_name=None):
         # 添加详细调试日志
         original_method = request.method
         override_method = request.form.get('_method', '').upper()
-        app.logger.info(f"方法覆盖检查 - 原始方法: {original_method}, 覆盖参数: {override_method}")
         
         if override_method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']:
             request.method = override_method
-            app.logger.info(f"方法已覆盖为: {request.method}")
+            app.logger.info(f"原始方法: {original_method} 已覆盖为: {request.method}")
         elif override_method:
             app.logger.warning(f"无效的方法覆盖参数: {override_method}")
     
