@@ -16,15 +16,15 @@
         <form method="POST" action="{{ url_for('file.upload_version', group_id=group.id, file_id=file.id) }}"
             enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="file">选择文件</label>
                 <input type="file" class="form-control" id="file" name="file" required>
             </div>
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="uploader">上传者</label>
                 <input type="text" class="form-control" id="uploader" name="uploader" placeholder="输入您的名称">
             </div>
-            <div class="form-group">
+            <div class="mb-3">
                 <label for="comment">更新注释</label>
                 <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="描述此版本的变更内容"></textarea>
             </div>

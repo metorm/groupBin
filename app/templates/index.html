@@ -3,30 +3,28 @@
 {% block title %}GroupBin - 小组文件共享平台{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="d-flex gap-2 align-items-center">
-                <a href="{{ url_for('group.create') }}" class="btn btn-primary btn-lg">创建新小组</a>
-                <button id="joinGroupBtn" class="btn btn-secondary btn-lg">加入小组</button>
-                <div class="flex-grow-1">
-                    <input type="text" id="groupJoinInput" class="form-control" placeholder="在此处输入需要加入的小组ID">
-                </div>
+<div class="mb-4"> <!-- 保留margin-bottom间距，移除card类 -->
+    <div class="py-3 px-0"> <!-- 保留垂直内边距，移除水平内边距 -->
+        <div class="d-flex gap-3 align-items-center"> <!-- 将gap从2增加到3以扩大按钮间距 -->
+            <a href="{{ url_for('group.create') }}" class="btn btn-primary btn-lg">创建新小组</a>
+            <button id="joinGroupBtn" class="btn btn-secondary">加入小组</button>
+            <div class="flex-grow-1">
+                <input type="text" id="groupJoinInput" class="form-control" placeholder="在此处输入需要加入的小组ID">
             </div>
         </div>
     </div>
-
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0">最近访问的小组</h5>
-        </div>
-        <div class="card-body">
-            <!-- 添加历史记录容器 -->
-            <div id="recent-groups-container"><!-- 历史记录将通过JS动态渲染 --></div>
-        </div>
-    </div>
-
 </div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h2 class="mb-0">最近访问的小组</h2>
+    </div>
+    <div class="card-body">
+        <!-- 添加历史记录容器 -->
+        <div id="recent-groups-container"><!-- 历史记录将通过JS动态渲染 --></div>
+    </div>
+</div>
+
 
 <script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
 <script>
