@@ -92,3 +92,11 @@
 2. 数据库使用 sqlite
 3. 文件存储使用本地文件系统，使用明文文件名，每个小组的文件保存在对应小组id的目录下，系统使用utf8编码存储和处理文件名
 4. 使用响应式前端，兼容移动设备
+
+# 测试
+
+需要额外安装：
+pip install playwright pytest
+pip install pytest-playwright
+playwright install chromium
+
