@@ -42,7 +42,7 @@
             </div>
 
             <div class="mb-3" id="versionCommentContainer">
-                <label for="versionComment" class="form-label">更新说明（可选）</label>
+                <label for="versionComment" class="form-label">版本说明（可选）</label>
                 <textarea class="form-control" id="versionComment" name="comment" rows="2"></textarea>
             </div>
 
@@ -66,6 +66,7 @@
                         <th>文件名</th>
                         <th>大小</th>
                         <th>上传时间</th>
+                        <th>上传者</th>
                         <th>版本</th>
                         <th>操作</th>
                     </tr>
@@ -86,6 +87,7 @@
                             <span class="utc-time" data-utc="{{ file.uploaded_at.isoformat() }}Z">{{
                                 file.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</span>
                         </td>
+                        <td class="align-middle">{{ file.versions[-1].uploader or '匿名' }}</td>
                         <td class="align-middle">{{ file.versions|length }}</td>
                         <td class="align-middle">
                             <!-- 独立按钮设计，移除按钮组容器 -->
