@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, request
+from flask import Flask, render_template, request
 
 # 明确指定.env文件路径
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
@@ -42,7 +42,7 @@ def setup_logging(app):
 
 def create_app(config_name=None):
     if not config_name:
-        config_name = os.environ.get('FLASK_CONFIG', 'default')
+        config_name = os.environ.get('FLASK_CONFIG', 'development')
     
     app = Flask(__name__)
     app.config.from_object(config[config_name])  # 从配置对象加载配置
@@ -75,10 +75,15 @@ def create_app(config_name=None):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     app.logger.info('Upload folder configured at: %s', app.config['UPLOAD_FOLDER'])
     
+    # 注册全局404错误处理器
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return render_template('404.html'), 404
+    
     # 注册蓝图
     from app.routes.main import main as main_bp
     app.register_blueprint(main_bp)
-
+    
     from app.routes.group import group as group_bp
     app.register_blueprint(group_bp, url_prefix='/group')
 

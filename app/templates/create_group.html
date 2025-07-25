@@ -12,7 +12,7 @@
             <div class="card-body">
                 <form method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <label for="groupName" class="form-label">小组名称（可选）</label>
+                        <label for="groupName" class="form-label">小组名称</label>
                         <input type="text" class="form-control" id="groupName" name="group_name" placeholder="输入小组名称">
                     </div>
 
@@ -30,8 +30,14 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="password" class="form-label">访问密码（可选）</label>
+                        <label for="password" class="form-label">访问密码</label>
                         <input type="password" class="form-control" id="password" name="password" placeholder="留空则无需密码">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="creator" class="form-label">创建者</label>
+                        <input type="text" class="form-control" id="creator" name="creator"
+                            placeholder="输入您的名称或标识，留空则为匿名">
                     </div>
 
                     <div class="mb-3 form-check">

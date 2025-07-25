@@ -8,6 +8,7 @@
     <div>
         <h1>{{ group.name or group.id }}</h1>
         <p class="text-muted">小组ID: {{ group.id }}</p>
+        <p class="text-muted">创建者: {{ group.creator or '匿名' }}</p>
     </div>
     <div class="text-end">
         <p class="text-danger expiration-time" data-expires-at="{{ group.expires_at.isoformat() }}"></p>

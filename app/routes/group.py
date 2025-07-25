@@ -29,7 +29,8 @@ def create():
             name=group_name,
             created_duration_hours=duration_hours,
             expires_at=datetime.datetime.now(timezone.utc) + timedelta(hours=duration_hours),
-            is_readonly=is_readonly
+            is_readonly=is_readonly,
+            creator=request.form.get('creator', '')  # 保存创建者信息
         )
         
         # 设置密码
@@ -51,7 +52,7 @@ def create():
                     group_id=new_group.id,
                     file=file,
                     upload_folder=current_app.config['UPLOAD_FOLDER'],
-                    uploader='初始上传',
+                    uploader=new_group.creator or '匿名',  # 使用创建者作为初始文件上传者
                     comment='小组创建时上传'
                 )
         
