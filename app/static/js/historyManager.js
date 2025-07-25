@@ -68,14 +68,14 @@ const GroupHistoryManager = {
         history.unshift(minimalGroupInfo);
 
         // 3. 循环删除最旧记录直到Cookie长度低于4000字节
-        let cookieString = `${this.config.cookieName}=${encodeURIComponent(JSON.stringify(history))}; path=${this.config.cookiePath}; max-age=${this.config.expireSeconds}`;
+        let cookieString = `${this.config.cookieName}=${encodeURIComponent(JSON.stringify(history))}; path=${this.config.cookiePath}; max-age=${this.config.cookieExpiresDays * 24 * 60 * 60}; SameSite=Lax`;
 
         // 检查并调整Cookie大小
         while (cookieString.length > 4000 && history.length > 0) {
             const removedItem = history.pop(); // 删除最后一条（最旧的）记录
             console.warn('[HistoryManager] Cookie超过大小限制，已删除最旧记录:', removedItem.id);
             // 重新生成Cookie字符串
-            cookieString = `${this.config.cookieName}=${encodeURIComponent(JSON.stringify(history))}; path=${this.config.cookiePath}; max-age=${this.config.expireSeconds}`;
+            cookieString = `${this.config.cookieName}=${encodeURIComponent(JSON.stringify(history))}; path=${this.config.cookiePath}; max-age=${this.config.cookieExpiresDays * 24 * 60 * 60}; SameSite=Lax`;
         }
 
         // 保存到Cookie
@@ -97,13 +97,7 @@ const GroupHistoryManager = {
      * @param {Array} history 小组历史记录数组
      */
     _saveHistory(history) {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + this.config.cookieExpiresDays);
-
-        document.cookie = `${this.config.cookieName}=${encodeURIComponent(JSON.stringify(history))};
-            expires=${expirationDate.toUTCString()};
-            path=/;
-            SameSite=Lax`;
+        document.cookie = `${this.config.cookieName}=${encodeURIComponent(JSON.stringify(history))}; path=/; max-age=${this.config.cookieExpiresDays * 24 * 60 * 60}; SameSite=Lax`;
     },
 
     /**
