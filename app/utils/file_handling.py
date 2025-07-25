@@ -12,8 +12,10 @@ def handle_file_upload(group_id, file, upload_folder, description='', uploader='
     os.makedirs(group_folder, exist_ok=True)
     
     # 生成安全的文件名
-    original_filename = secure_filename(file.filename)
-    stored_filename = str(uuid.uuid4()) + os.path.splitext(original_filename)[1]
+    original_filename = file.filename  # 保留原始文件名（含中文）
+    # 仅对存储文件名使用安全处理
+    safe_extension = secure_filename(os.path.splitext(file.filename)[1])
+    stored_filename = str(uuid.uuid4()) + safe_extension
     file_path = os.path.join(group_folder, stored_filename)
     
     # 保存文件
