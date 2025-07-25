@@ -79,7 +79,7 @@
                             </a>
                             ${isExpired ? '<span class="badge bg-secondary ms-2">已过期</span>' : ''}
                         </div>
-                        <small>${isExpired ? '已过期' : `剩余 ${Math.ceil((expiresDate - now) / (1000 * 60 * 60 * 24))} 天`}</small>
+                        <small class="expiration-time" data-expires-at="${item.expiresAt}">${formatTimeDifference(item.expiresAt)}</small>
                     </li>
                 `;
             });
