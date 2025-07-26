@@ -77,6 +77,20 @@ def handle_upload_common(group, file=None, redirect_endpoint=None, redirect_para
 
 @file.route('/upload/<group_id>', methods=['GET', 'POST'])
 def upload(group_id):
+    return handle_file_request(group_id)
+
+@file.route('/upload_version/<group_id>/<file_id>', methods=['GET', 'POST'])
+def upload_version(group_id, file_id):
+    return handle_file_request(group_id, file_id)
+
+def handle_file_request(group_id, file_id=None):
+    """
+    统一处理文件上传请求（包括普通上传和版本上传）
+    
+    Args:
+        group_id: 小组ID
+        file_id: 文件ID（可选，用于版本上传）
+    """
     # 检查是否是Resumable.js的分块上传请求
     resumable_identifier = request.form.get('resumableIdentifier', '')
     resumable_filename = request.form.get('resumableFilename', '')
@@ -95,16 +109,28 @@ def upload(group_id):
             return check_chunk(group_id, resumable_identifier, resumable_chunk_number)
         elif request.method == 'POST':
             # 处理分块上传
-            return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number)
+            return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number, file_id)
     
     # 处理普通的表单上传
     if request.method == 'POST':
         group = Group.query.get_or_404(group_id)
-        return handle_upload_common(
-            group=group,
-            redirect_endpoint='group.view',
-            redirect_params={'group_id': group_id}
-        )
+        
+        if file_id:
+            # 版本上传
+            file_obj = File.query.get_or_404(file_id)
+            return handle_upload_common(
+                group=group,
+                file=file_obj,
+                redirect_endpoint='file.version_history',
+                redirect_params={'group_id': group_id, 'file_id': file_id}
+            )
+        else:
+            # 新文件上传
+            return handle_upload_common(
+                group=group,
+                redirect_endpoint='group.view',
+                redirect_params={'group_id': group_id}
+            )
     
     # 如果是GET请求但不是Resumable.js的检查请求，则返回405
     return jsonify({'error': 'Method not allowed'}), 405
@@ -244,7 +270,7 @@ def download_version(group_id, file_id, version_id):
             'message': '请联系管理员检查文件系统',
             'file_path': file_path
         }), 500
-        abort(404, description=f"File not found: {version.stored_filename}")
+        # abort(404, description=f"File not found: {version.stored_filename}")
     
     # 使用绝对路径调用send_from_directory
     return send_from_directory(
@@ -315,34 +341,3 @@ def version_history(group_id, file_id):
     # 按上传时间降序排列版本
     versions = sorted(file.versions, key=lambda v: v.uploaded_at, reverse=True)
     return render_template('version_history.html', group=group, file=file, versions=versions)
-
-@file.route('/upload_version/<group_id>/<file_id>', methods=['GET', 'POST'])
-def upload_version(group_id, file_id):
-    # 检查是否是Resumable.js的分块上传请求
-    resumable_identifier = request.form.get('resumableIdentifier', '')
-    resumable_filename = request.form.get('resumableFilename', '')
-    resumable_chunk_number = request.form.get('resumableChunkNumber', '')
-    
-    # 也检查URL参数中的Resumable.js标识
-    if not resumable_identifier:
-        resumable_identifier = request.args.get('resumableIdentifier', '')
-        resumable_filename = request.args.get('resumableFilename', '')
-        resumable_chunk_number = request.args.get('resumableChunkNumber', '')
-    
-    if resumable_identifier:
-        # 处理Resumable.js上传
-        if request.method == 'GET':
-            # 检查分块是否已经上传
-            return check_chunk(group_id, resumable_identifier, resumable_chunk_number)
-        elif request.method == 'POST':
-            # 处理分块上传
-            return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number, file_id)
-    
-    group = Group.query.get_or_404(group_id)
-    file = File.query.get_or_404(file_id)
-    return handle_upload_common(
-        group=group,
-        file=file,
-        redirect_endpoint='file.version_history',
-        redirect_params={'group_id': group_id, 'file_id': file_id}
-    )
