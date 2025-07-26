@@ -6,22 +6,29 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1>{{ group.name or group.id }}</h1>
-        <p class="text-muted">小组ID: {{ group.id }}</p>
-        <p class="text-muted">创建者: {{ group.creator or '匿名' }}</p>
+        <p class="text-muted mb-1">小组ID: {{ group.id }}</p>
+        <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+            <p class="text-muted mb-0 me-3">创建者: {{ group.creator or '匿名' }}</p>
+            <button class="btn btn-sm btn-outline-primary" id="copy-link-btn">
+                <i class="bi bi-link"></i> 复制页面地址
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="copy-id-btn" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" 
+                    title="通过公共信道仅发送小组ID，不含网址更安全">
+                <i class="bi bi-clipboard"></i> 复制小组ID
+            </button>
+            {% if group.allow_convert_to_readonly and not group.is_readonly %}
+            <button id="convertToReadonlyBtn" class="btn btn-sm btn-warning">转为只读小组</button>
+            {% endif %}
+        </div>
     </div>
     <div class="text-end">
         <p class="text-danger expiration-time" data-expires-at="{{ group.expires_at.isoformat() }}"></p>
         <a href="{{ url_for('group.refresh', group_id=group.id) }}" class="btn btn-sm btn-outline-secondary">刷新有效期</a>
     </div>
-
-    {% if group.allow_convert_to_readonly and not group.is_readonly %}
-    <div class="mb-3">
-        <button id="convertToReadonlyBtn" class="btn btn-warning">转为只读小组</button>
-    </div>
-    {% endif %}
 </div>
 
 <div class="card mb-4">
@@ -135,6 +142,54 @@
     });
 </script>
 
+<script>
+    // 复制功能实现
+    document.addEventListener('DOMContentLoaded', function () {
+        // 复制页面地址按钮
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', function () {
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(function () {
+                    // 显示成功提示
+                    const originalText = copyLinkBtn.innerHTML;
+                    copyLinkBtn.innerHTML = '<i class="bi bi-check"></i> 已复制';
+                    setTimeout(function () {
+                        copyLinkBtn.innerHTML = originalText;
+                    }, 2000);
+                }).catch(function (err) {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制地址');
+                });
+            });
+        }
+
+        // 复制小组ID按钮
+        const copyIdBtn = document.getElementById('copy-id-btn');
+        if (copyIdBtn) {
+            copyIdBtn.addEventListener('click', function () {
+                const groupId = '{{ group.id }}';
+                navigator.clipboard.writeText(groupId).then(function () {
+                    // 显示成功提示
+                    const originalText = copyIdBtn.innerHTML;
+                    copyIdBtn.innerHTML = '<i class="bi bi-check"></i> 已复制';
+                    setTimeout(function () {
+                        copyIdBtn.innerHTML = originalText;
+                    }, 2000);
+                }).catch(function (err) {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制小组ID');
+                });
+            });
+        }
+
+        // 初始化Bootstrap工具提示
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 
 <script>
     document.getElementById('convertToReadonlyBtn')?.addEventListener('click', async function () {
