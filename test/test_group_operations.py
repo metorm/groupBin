@@ -44,6 +44,8 @@ def page(playwright: Playwright):
     )
     context = browser.new_context(no_viewport=True)
     page = context.new_page()
+    page.set_default_timeout(3000)
+    page.set_default_navigation_timeout(3000)
     yield page
     context.close()
     browser.close()
@@ -71,33 +73,51 @@ def test_create_group_and_upload_file(page: Page, test_file: str):
     assert group_name in page.text_content("h1")
 
     # 上传文件
-    with page.expect_file_chooser(timeout=15000):
-        page.click("button:has-text('上传文件')")
-    file_chooser = page.expect_file_chooser().value
+    # 第一步：点击"选择文件"按钮触发文件选择对话框
+    with page.expect_file_chooser() as fc_info:
+        page.click("text=选择文件")
+    file_chooser = fc_info.value
     file_chooser.set_files(test_file)
+    
+    # 第二步：等待文件选择完成后点击"上传"按钮
+    page.click("button:has-text('上传文件')")
 
-    # 验证上传成功
-    file_name = os.path.basename(test_file)
-    assert file_name in page.text_content(".file-item")
+    # 验证文件上传成功
+    page.wait_for_selector(f"text={os.path.basename(test_file)}")
+    assert page.is_visible(f"text={os.path.basename(test_file)}")
 
 
 def test_convert_to_readonly(page: Page):
     # 创建小组
     page.goto("http://localhost:5000/group/create")
     group_name = f"测试只读小组_{int(time.time())}"
+
     page.fill("input[name='group_name']", group_name)
     page.select_option("select[name='duration']", "24")
-    page.fill("input[name='duration_hours']", "24")
-    page.fill("input[name='password']", "test123")
-    page.check("input[name='allow_convert_to_readonly']")
+    
+    page.select_option("select[name='duration']", "24")
+
+    page.check("#allowConvertToReadonly")
 
     with page.expect_navigation():
-        page.click("button[type='submit']")
+        page.click("button:has-text('创建小组')")
+    
+    # 验证小组创建成功
+    assert group_name in page.text_content("h1")
 
-    # 转为只读状态
+    def handle_confirm_dialog(dialog):
+        dialog.accept()
+    page.on("dialog", handle_confirm_dialog)
+
+    # 点击转换为只读按钮并处理确认对话框
     page.click("#convertToReadonlyBtn")
-    page.wait_for_selector("text=小组已成功转为只读状态")
+    page.wait_for_timeout(1000)
+    page.remove_listener('dialog', handle_confirm_dialog)
+
+    # 等待页面刷新并验证只读状态
+    page.wait_for_load_state("domcontentloaded")
     assert page.is_visible("text=只读")
 
     # 验证上传按钮已禁用
-    assert page.is_disabled("button:has-text('上传文件')")
+    upload_button = page.locator("button:has-text('上传文件')")
+    assert upload_button.count() == 0
