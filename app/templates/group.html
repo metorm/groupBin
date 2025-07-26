@@ -54,12 +54,12 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>文件名</th>
-                        <th>大小</th>
-                        <th>上传时间</th>
-                        <th>上传者</th>
-                        <th>版本</th>
-                        <th>操作</th>
+                        <th class="text-nowrap">文件名</th>
+                        <th class="text-nowrap">大小</th>
+                        <th class="text-nowrap">上传时间</th>
+                        <th class="text-nowrap">上传者</th>
+                        <th class="text-nowrap">版本</th>
+                        <th class="text-nowrap">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,14 +67,16 @@
                     <tr>
                         <td class="align-middle">
                             <div class="file-info">
-                                <div>
+                                <div class="file-name-wrap">
                                     <a href="{{ url_for('file.download', group_id=group.id, file_id=file.id) }}"
                                         class="file-download-link" style="text-decoration: none;">
                                         <strong class="text-primary">{{ file.original_filename }}</strong>
                                     </a>
                                 </div>
                                 {% if file.description %}
-                                <small class="d-block text-muted text-truncate" style="max-width: 200px;" title="{{ file.description }}">{{ file.description }}</small>
+                                <div class="file-description-wrap">
+                                    <small class="text-muted">{{ file.description }}</small>
+                                </div>
                                 {% endif %}
                             </div>
                         </td>
@@ -89,7 +91,7 @@
                             <!-- 独立按钮设计，移除按钮组容器 -->
                             <div class="d-flex flex-column gap-1">
                                 <a href="{{ url_for('file.version_history', group_id=group.id, file_id=file.id) }}"
-                                    class="btn btn-primary btn-sm">版本</a>
+                                    class="btn btn-primary btn-sm text-nowrap">版本</a>
 
                                 {% if not group.is_readonly %}
                                 <form method="POST"
@@ -97,7 +99,7 @@
                                     class="d-inline delete-form">
                                     <input type="hidden" name="_method" value="DELETE">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger btn-sm w-100"
+                                    <button type="submit" class="btn btn-danger btn-sm w-100 text-nowrap"
                                         onclick="return confirm('确定要删除这个文件吗？');">删除</button>
                                 </form>
                                 {% endif %}

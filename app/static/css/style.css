@@ -73,12 +73,6 @@ td .d-flex.flex-column.gap-1 {
     min-width: 80px;
 }
 
-/* 操作列按钮样式 */
-td .btn-sm {
-    margin-bottom: 0.25rem;
-    width: 100%;
-}
-
 /* 最后一个按钮不需要下边距 */
 td .btn-sm:last-child {
     margin-bottom: 0;
@@ -101,4 +95,22 @@ td .delete-form .btn-sm {
 /* 确保操作列中的按钮在空间不足时垂直排列并有间距 */
 .btn-sm.mb-1.d-block {
     margin-bottom: 0.25rem !important;
+}
+
+/* 表头不折行显示 */
+th.text-nowrap {
+    white-space: nowrap;
+}
+
+/* 文件名列允许在任何位置折行 */
+.file-name-wrap,
+.file-description-wrap {
+    word-wrap: break-word;
+    word-break: break-all;
+    white-space: normal;
+}
+
+/* 操作列按钮文字不折行 */
+.btn-sm.text-nowrap {
+    white-space: nowrap;
 }
