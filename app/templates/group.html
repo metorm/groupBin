@@ -24,25 +24,6 @@
     {% endif %}
 </div>
 
-{% if not group.is_readonly %}
-<div class="card mb-4">
-    <div class="card-header">
-        <h2>上传文件</h2>
-    </div>
-    <div class="card-body">
-        {{ render_upload_form(
-        action_url=url_for('file.upload', group_id=group.id),
-        button_text='上传文件',
-        allow_multiple=true,
-        show_uploader=true,
-        show_description=true,
-        show_comment=true,
-        group_id=group.id
-        ) }}
-    </div>
-</div>
-{% endif %}
-
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h4>文件列表</h4>
@@ -117,6 +98,25 @@
         {% endif %}
     </div>
 </div>
+
+{% if not group.is_readonly %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>添加文件</h2>
+    </div>
+    <div class="card-body">
+        {{ render_upload_form(
+        action_url=url_for('file.upload', group_id=group.id),
+        button_text='上传文件',
+        allow_multiple=true,
+        show_uploader=true,
+        show_description=true,
+        show_comment=true,
+        group_id=group.id
+        ) }}
+    </div>
+</div>
+{% endif %}
 
 <script type="module" src="{{ url_for('static', filename='js/group.js') }}"></script>
 <script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
