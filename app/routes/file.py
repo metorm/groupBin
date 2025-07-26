@@ -10,7 +10,7 @@ import zipfile
 from io import BytesIO
 from app.utils.file_handling import handle_file_upload
 
-file = Blueprint('file', __name__)
+file = Blueprint('file', __name__, url_prefix='/file')
 
 def handle_upload_common(group, file=None, redirect_endpoint=None, redirect_params=None):
     # 检查小组是否只读
@@ -75,31 +75,42 @@ def handle_upload_common(group, file=None, redirect_endpoint=None, redirect_para
     }), 500
 
 
-@file.route('/upload/<group_id>', methods=['POST'])
+@file.route('/upload/<group_id>', methods=['GET', 'POST'])
 def upload(group_id):
     # 检查是否是Resumable.js的分块上传请求
     resumable_identifier = request.form.get('resumableIdentifier', '')
     resumable_filename = request.form.get('resumableFilename', '')
     resumable_chunk_number = request.form.get('resumableChunkNumber', '')
     
+    # 也检查URL参数中的Resumable.js标识
+    if not resumable_identifier:
+        resumable_identifier = request.args.get('resumableIdentifier', '')
+        resumable_filename = request.args.get('resumableFilename', '')
+        resumable_chunk_number = request.args.get('resumableChunkNumber', '')
+    
     if resumable_identifier:
         # 处理Resumable.js上传
-        return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number)
+        if request.method == 'GET':
+            # 检查分块是否已经上传
+            return check_chunk(group_id, resumable_identifier, resumable_chunk_number)
+        elif request.method == 'POST':
+            # 处理分块上传
+            return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number)
     
-    group = Group.query.get_or_404(group_id)
-    return handle_upload_common(
-        group=group,
-        redirect_endpoint='group.view',
-        redirect_params={'group_id': group_id}
-    )
+    # 处理普通的表单上传
+    if request.method == 'POST':
+        group = Group.query.get_or_404(group_id)
+        return handle_upload_common(
+            group=group,
+            redirect_endpoint='group.view',
+            redirect_params={'group_id': group_id}
+        )
+    
+    # 如果是GET请求但不是Resumable.js的检查请求，则返回405
+    return jsonify({'error': 'Method not allowed'}), 405
 
-@file.route('/upload/<group_id>/chunk', methods=['GET'])
-def check_chunk(group_id):
+def check_chunk(group_id, resumable_identifier, resumable_chunk_number):
     """检查分块是否已存在"""
-    resumable_identifier = request.args.get('resumableIdentifier', '')
-    resumable_chunk_number = request.args.get('resumableChunkNumber', '')
-    resumable_filename = request.args.get('resumableFilename', '')
-    
     # 构建分块文件路径
     chunk_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'tmp', resumable_identifier)
     chunk_file = os.path.join(chunk_dir, str(resumable_chunk_number))
@@ -108,9 +119,9 @@ def check_chunk(group_id):
     if os.path.exists(chunk_file):
         return 'found', 200
     else:
-        return 'not_found', 404
+        return 'not_found', 204  # 204表示分块不存在，需要上传
 
-def handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number):
+def handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number, file_id=None):
     """处理Resumable.js上传请求"""
     group = Group.query.get_or_404(group_id)
     
@@ -133,7 +144,7 @@ def handle_resumable_upload(group_id, resumable_identifier, resumable_filename, 
     uploaded_file.save(chunk_file)
     
     # 检查是否所有分块都已上传完成
-    resumable_total_chunks = int(request.form.get('resumableTotalChunks', 0))
+    resumable_total_chunks = int(request.args.get('resumableTotalChunks', 0) or request.form.get('resumableTotalChunks', 0))
     if all_chunks_uploaded(chunk_dir, resumable_total_chunks):
         # 合并所有分块
         final_file_path = merge_chunks(chunk_dir, resumable_filename, resumable_total_chunks)
@@ -155,10 +166,17 @@ def handle_resumable_upload(group_id, resumable_identifier, resumable_filename, 
             'group_id': group.id,
             'file': file_upload,
             'upload_folder': current_app.config['UPLOAD_FOLDER'],
-            'uploader': request.form.get('uploader', 'anonymous'),
-            'description': request.form.get('description', ''),
-            'comment': request.form.get('comment', '常规上传')
+            'uploader': request.args.get('uploader', '') or request.form.get('uploader', 'anonymous'),
+            'description': request.args.get('description', '') or request.form.get('description', ''),
+            'comment': request.args.get('comment', '') or request.form.get('comment', '常规上传')
         }
+        
+        # 根据是否为新文件设置不同参数
+        if file_id:
+            # 版本上传
+            upload_kwargs['file_id'] = file_id
+            upload_kwargs['description'] = request.args.get('description', '') or request.form.get('description', '')
+            upload_kwargs['comment'] = request.args.get('comment', '') or request.form.get('comment', '版本更新')
         
         # 处理文件上传
         new_file = handle_file_upload(**upload_kwargs)
@@ -298,8 +316,28 @@ def version_history(group_id, file_id):
     versions = sorted(file.versions, key=lambda v: v.uploaded_at, reverse=True)
     return render_template('version_history.html', group=group, file=file, versions=versions)
 
-@file.route('/upload_version/<group_id>/<file_id>', methods=['POST'])
+@file.route('/upload_version/<group_id>/<file_id>', methods=['GET', 'POST'])
 def upload_version(group_id, file_id):
+    # 检查是否是Resumable.js的分块上传请求
+    resumable_identifier = request.form.get('resumableIdentifier', '')
+    resumable_filename = request.form.get('resumableFilename', '')
+    resumable_chunk_number = request.form.get('resumableChunkNumber', '')
+    
+    # 也检查URL参数中的Resumable.js标识
+    if not resumable_identifier:
+        resumable_identifier = request.args.get('resumableIdentifier', '')
+        resumable_filename = request.args.get('resumableFilename', '')
+        resumable_chunk_number = request.args.get('resumableChunkNumber', '')
+    
+    if resumable_identifier:
+        # 处理Resumable.js上传
+        if request.method == 'GET':
+            # 检查分块是否已经上传
+            return check_chunk(group_id, resumable_identifier, resumable_chunk_number)
+        elif request.method == 'POST':
+            # 处理分块上传
+            return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number, file_id)
+    
     group = Group.query.get_or_404(group_id)
     file = File.query.get_or_404(file_id)
     return handle_upload_common(

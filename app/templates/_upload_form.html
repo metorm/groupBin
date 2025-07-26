@@ -1,40 +1,256 @@
 {% macro render_upload_form(action_url, button_text, allow_multiple=false, show_uploader=true, default_uploader='',
-show_description=true, show_comment=true) %}
-<form class="upload-form" method="POST" action="{{ action_url }}" enctype="multipart/form-data">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+show_description=true, show_comment=true, group_id='', file_id='') %}
+<div id="resumable-upload-area" data-allow-multiple="{{ allow_multiple|lower }}">
     <div class="mb-3">
-        <label for="fileUpload" class="form-label">选择文件</label>
-        <input type="file" class="form-control" id="fileUpload" name="file" required {% if allow_multiple %}multiple{%
-            endif %}>
+        <label class="form-label">选择文件</label>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <button id="resumable-browse" class="btn btn-outline-secondary" type="button">
+                <i class="bi bi-file-earmark-arrow-up"></i> 选择文件
+            </button>
+            {% if allow_multiple %}
+            <button id="resumable-browse-folder" class="btn btn-outline-secondary" type="button">
+                <i class="bi bi-folder"></i> 选择文件夹
+            </button>
+            {% endif %}
+        </div>
+        <div class="form-text">
+            {% if allow_multiple %}
+            当前可多选文件（按住 Ctrl 键选择多个文件）
+            {% else %}
+            当前仅可选择单个文件
+            {% endif %}
+            <span id="file-count">（尚未选择文件）</span>
+        </div>
     </div>
-
+    
+    <div id="selected-files-list" class="mb-3" style="display: none;">
+        <h6>已选择的文件:</h6>
+        <ul id="file-list" class="list-group"></ul>
+    </div>
+    
     {% if show_description %}
     <div class="mb-3">
-        <label for="description" class="form-label">文件描述</label>
-        <textarea class="form-control" id="description" name="description" rows="2" placeholder="输入文件描述..."></textarea>
+        <label for="resumable-description" class="form-label">文件描述</label>
+        <textarea class="form-control" id="resumable-description" rows="2" placeholder="输入文件描述..."></textarea>
     </div>
     {% endif %}
-
+    
     {% if show_uploader %}
     <div class="mb-3">
-        <label for="uploaderName" class="form-label">上传者</label>
-        <input type="text" class="form-control" id="uploaderName" name="uploader" placeholder="您的名称或标识"
-            value="{{ default_uploader }}">
+        <label for="resumable-uploader" class="form-label">上传者</label>
+        <input type="text" class="form-control" id="resumable-uploader" placeholder="您的名称或标识" value="{{ default_uploader }}">
     </div>
     {% else %}
-    <input type="hidden" name="uploader" value="{{ default_uploader }}">
+    <input type="hidden" id="resumable-uploader" value="{{ default_uploader }}">
     {% endif %}
-
+    
     {% if show_comment %}
     <div class="mb-3">
-        <label for="versionComment" class="form-label">版本说明</label>
-        <textarea class="form-control" id="versionComment" name="comment" rows="2"></textarea>
+        <label for="resumable-comment" class="form-label">版本说明</label>
+        <textarea class="form-control" id="resumable-comment" rows="2"></textarea>
     </div>
     {% endif %}
+    
+    <button id="resumable-upload" class="btn btn-primary" disabled>{{ button_text }}</button>
+    
+    <div id="resumable-progress" class="mt-3" style="display: none;">
+        <div class="progress">
+            <div id="resumable-progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+        </div>
+        <div id="resumable-progress-text" class="mt-1">准备上传...</div>
+    </div>
+    
+    <div id="resumable-file-list" class="mt-3"></div>
+    
+    <!-- 隐藏的文件输入元素 -->
+    <input type="file" id="resumable-file-input" style="display: none;" {% if allow_multiple %}multiple{% endif %}>
+</div>
 
-    {% if button_text %}
-    <button type="submit" class="btn btn-primary">{{ button_text }}</button>
-    {% endif %}
-</form>
+<script src="{{ url_for('static', filename='js/resumable.js') }}"></script>
+<script>
+    // 初始化Resumable.js
+    document.addEventListener('DOMContentLoaded', function() {
+        // 检查必要的元素是否存在
+        if (!document.getElementById('resumable-browse') || 
+            !document.getElementById('resumable-upload')) {
+            return;
+        }
+        
+        // 获取可能不存在的元素
+        var fileInput = document.getElementById('resumable-file-input');
+        var uploaderElement = document.getElementById('resumable-uploader');
+        var descriptionElement = document.getElementById('resumable-description');
+        var commentElement = document.getElementById('resumable-comment');
+        var fileListElement = document.getElementById('file-list');
+        var selectedFilesListElement = document.getElementById('selected-files-list');
+        var fileCountElement = document.getElementById('file-count');
+        var uploadArea = document.getElementById('resumable-upload-area');
+        var browseFolderButton = document.getElementById('resumable-browse-folder');
+        
+        // 如果必要元素不存在，则不初始化
+        if (!uploaderElement || !fileInput || !uploadArea) {
+            return;
+        }
+        
+        // 获取allow_multiple参数
+        var allowMultiple = uploadArea.getAttribute('data-allow-multiple') === 'true';
+        
+        // 创建Resumable实例
+        var r = new Resumable({
+            target: '{{ action_url }}',
+            chunkSize: 1024*1024, // 1MB
+            simultaneousUploads: 3,
+            testChunks: true,
+            throttleProgressCallbacks: 1,
+            method: "multipart",
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            query: {
+                uploader: uploaderElement.value,
+                description: descriptionElement ? descriptionElement.value : '',
+                comment: commentElement ? commentElement.value : ''
+            }
+        });
+        
+        // 检查浏览器是否支持
+        if(!r.support) {
+            alert('您的浏览器不支持分块上传，请更换浏览器或直接使用普通上传。');
+        } else {
+            // 分配事件
+            // 文件选择按钮事件
+            document.getElementById('resumable-browse').addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 文件夹选择按钮事件（仅在多选模式下存在）
+            if (browseFolderButton && allowMultiple) {
+                r.assignBrowse(browseFolderButton, true, true); // 第三个参数表示允许目录选择
+            }
+            
+            // 文件拖拽区域
+            r.assignDrop(document.getElementById('resumable-upload-area'));
+            
+            // 文件输入变化事件
+            fileInput.addEventListener('change', function(e) {
+                if (this.files) {
+                    for (var i = 0; i < this.files.length; i++) {
+                        r.addFile(this.files[i]);
+                    }
+                    this.value = ''; // 清空输入框，以便下次选择相同文件时也能触发change事件
+                }
+            });
+            
+            // 文件添加事件
+            r.on('fileAdded', function(file) {
+                updateFileList();
+                document.getElementById('resumable-upload').disabled = false;
+            });
+            
+            // 文件移除事件
+            r.on('fileRemoved', function(file) {
+                updateFileList();
+                if (r.files.length === 0) {
+                    document.getElementById('resumable-upload').disabled = true;
+                }
+            });
+            
+            // 上传按钮事件
+            document.getElementById('resumable-upload').addEventListener('click', function() {
+                // 更新上传参数
+                r.opts.query.uploader = uploaderElement.value;
+                if (descriptionElement) {
+                    r.opts.query.description = descriptionElement.value;
+                }
+                if (commentElement) {
+                    r.opts.query.comment = commentElement.value;
+                }
+                
+                r.upload();
+            });
+            
+            // 上传进度事件
+            r.on('progress', function() {
+                var progress = Math.floor(r.progress() * 100);
+                document.getElementById('resumable-progress').style.display = 'block';
+                document.getElementById('resumable-progress-bar').style.width = progress + '%';
+                document.getElementById('resumable-progress-text').textContent = '上传进度: ' + progress + '%';
+            });
+            
+            // 文件成功上传事件
+            r.on('fileSuccess', function(file, message) {
+                document.getElementById('resumable-progress-text').textContent = '上传成功!';
+                setTimeout(function() {
+                    // 检查是否为版本上传，如果是则跳转到版本历史页面
+                    var isVersionUpload = '{{ "upload_version" in action_url }}';
+                    var groupId = '{{ group_id }}';
+                    var fileId = '{{ file_id }}';
+                    
+                    if (isVersionUpload === 'True' && groupId && fileId) {
+                        window.location.href = '{{ url_for("file.version_history", group_id="GROUP_ID", file_id="FILE_ID") }}'.replace('GROUP_ID', groupId).replace('FILE_ID', fileId);
+                    } else {
+                        location.reload();
+                    }
+                }, 1000);
+            });
+            
+            // 文件上传错误事件
+            r.on('fileError', function(file, message) {
+                document.getElementById('resumable-progress-text').textContent = '上传失败: ' + message;
+            });
+            
+            // 更新文件列表显示
+            function updateFileList() {
+                // 清空现有列表
+                fileListElement.innerHTML = '';
+                
+                // 更新文件计数
+                var fileCount = r.files.length;
+                if (fileCount === 0) {
+                    fileCountElement.textContent = '（尚未选择文件）';
+                    selectedFilesListElement.style.display = 'none';
+                } else {
+                    fileCountElement.textContent = `（已选择 ${fileCount} 个文件）`;
+                    selectedFilesListElement.style.display = 'block';
+                    
+                    // 添加每个文件到列表
+                    r.files.forEach(function(file) {
+                        var li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        li.innerHTML = `
+                            <div>
+                                <div>${file.fileName}</div>
+                                <small class="text-muted">${formatFileSize(file.size)}</small>
+                            </div>
+                            <button class="btn btn-sm btn-danger remove-file" data-file-unique-id="${file.uniqueIdentifier}">移除</button>
+                        `;
+                        fileListElement.appendChild(li);
+                    });
+                    
+                    // 为移除按钮添加事件监听器
+                    document.querySelectorAll('.remove-file').forEach(function(button) {
+                        button.addEventListener('click', function() {
+                            var fileUniqueId = this.getAttribute('data-file-unique-id');
+                            var fileToRemove = r.files.find(function(file) {
+                                return file.uniqueIdentifier === fileUniqueId;
+                            });
+                            if (fileToRemove) {
+                                r.removeFile(fileToRemove);
+                            }
+                        });
+                    });
+                }
+            }
+        }
+        
+        // 格式化文件大小的辅助函数
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    });
+</script>
 {% endmacro %}
