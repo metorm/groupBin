@@ -1,4 +1,4 @@
-﻿/* 基础样式 */
+/* 基础样式 */
 body {
     padding-top: 20px;
     padding-bottom: 60px;
@@ -45,4 +45,60 @@ body {
 
 .fade-in {
     animation: fadeIn 0.5s ease-in-out;
+}
+
+/* 添加表格优化样式 */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 优化UTC时间显示 */
+.utc-time {
+    white-space: nowrap;
+}
+
+/* 文件列表中的文件名显示优化 */
+.file-info .text-truncate {
+    max-width: 200px;
+}
+
+/* 操作列按钮容器 */
+td .d-flex.flex-column.gap-1 {
+    min-width: 80px;
+}
+
+/* 操作列按钮样式 */
+td .btn-sm {
+    margin-bottom: 0.25rem;
+    width: 100%;
+}
+
+/* 最后一个按钮不需要下边距 */
+td .btn-sm:last-child {
+    margin-bottom: 0;
+}
+
+/* 确保表单内的删除按钮与其他按钮等宽 */
+td .delete-form .btn-sm {
+    width: 100%;
+}
+
+/* 文件下载链接样式 */
+.file-download-link {
+    text-decoration: none;
+}
+
+.file-download-link:hover strong {
+    text-decoration: underline;
+}
+
+/* 确保操作列中的按钮在空间不足时垂直排列并有间距 */
+.btn-sm.mb-1.d-block {
+    margin-bottom: 0.25rem !important;
 }

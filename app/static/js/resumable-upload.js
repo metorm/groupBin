@@ -10,11 +10,11 @@
  */
 function initializeResumableUpload(options) {
     // 检查必要的元素是否存在
-    if (!document.getElementById('resumable-browse') || 
+    if (!document.getElementById('resumable-browse') ||
         !document.getElementById('resumable-upload')) {
         return;
     }
-    
+
     // 获取可能不存在的元素
     var fileInput = document.getElementById('resumable-file-input');
     var uploaderElement = document.getElementById('resumable-uploader');
@@ -25,19 +25,20 @@ function initializeResumableUpload(options) {
     var fileCountElement = document.getElementById('file-count');
     var uploadArea = document.getElementById('resumable-upload-area');
     var browseFolderButton = document.getElementById('resumable-browse-folder');
-    
+    var clearButton = document.getElementById('resumable-clear');
+
     // 如果必要元素不存在，则不初始化
     if (!uploaderElement || !fileInput || !uploadArea) {
         return;
     }
-    
+
     // 获取allow_multiple参数
     var allowMultiple = options.allowMultiple;
-    
+
     // 创建Resumable实例
     var r = new Resumable({
         target: options.target,
-        chunkSize: 1024*1024, // 1MB
+        chunkSize: 1024 * 1024, // 1MB
         simultaneousUploads: 3,
         testChunks: true,
         throttleProgressCallbacks: 1,
@@ -51,27 +52,27 @@ function initializeResumableUpload(options) {
             comment: commentElement ? commentElement.value : ''
         }
     });
-    
+
     // 检查浏览器是否支持
-    if(!r.support) {
+    if (!r.support) {
         alert('您的浏览器不支持分块上传，请更换浏览器或直接使用普通上传。');
     } else {
         // 分配事件
         // 文件选择按钮事件
-        document.getElementById('resumable-browse').addEventListener('click', function() {
+        document.getElementById('resumable-browse').addEventListener('click', function () {
             fileInput.click();
         });
-        
+
         // 文件夹选择按钮事件（仅在多选模式下存在）
         if (browseFolderButton && allowMultiple) {
             r.assignBrowse(browseFolderButton, true, true); // 第三个参数表示允许目录选择
         }
-        
+
         // 文件拖拽区域
         r.assignDrop(document.getElementById('resumable-upload-area'));
-        
+
         // 文件输入变化事件
-        fileInput.addEventListener('change', function(e) {
+        fileInput.addEventListener('change', function (e) {
             if (this.files) {
                 for (var i = 0; i < this.files.length; i++) {
                     r.addFile(this.files[i]);
@@ -79,23 +80,37 @@ function initializeResumableUpload(options) {
                 this.value = ''; // 清空输入框，以便下次选择相同文件时也能触发change事件
             }
         });
-        
+
         // 文件添加事件
-        r.on('fileAdded', function(file) {
+        r.on('fileAdded', function (file) {
             updateFileList();
             document.getElementById('resumable-upload').disabled = false;
         });
-        
+
         // 文件移除事件
-        r.on('fileRemoved', function(file) {
+        r.on('fileRemoved', function (file) {
             updateFileList();
             if (r.files.length === 0) {
                 document.getElementById('resumable-upload').disabled = true;
             }
         });
-        
+
+        // 清空选择按钮事件
+        if (clearButton) {
+            clearButton.addEventListener('click', function () {
+                // 移除所有文件
+                while (r.files.length > 0) {
+                    r.removeFile(r.files[0]);
+                }
+                // 更新界面
+                updateFileList();
+                // 禁用上传按钮
+                document.getElementById('resumable-upload').disabled = true;
+            });
+        }
+
         // 上传按钮事件
-        document.getElementById('resumable-upload').addEventListener('click', function() {
+        document.getElementById('resumable-upload').addEventListener('click', function () {
             // 更新上传参数
             r.opts.query.uploader = uploaderElement.value;
             if (descriptionElement) {
@@ -104,23 +119,23 @@ function initializeResumableUpload(options) {
             if (commentElement) {
                 r.opts.query.comment = commentElement.value;
             }
-            
+
             r.upload();
         });
-        
+
         // 上传进度事件
-        r.on('progress', function() {
+        r.on('progress', function () {
             var progress = Math.floor(r.progress() * 100);
             document.getElementById('resumable-progress').style.display = 'block';
             document.getElementById('resumable-progress-bar').style.width = progress + '%';
             document.getElementById('resumable-progress-text').textContent = '上传进度: ' + progress + '%';
         });
-        
+
         // 文件成功上传事件
-        r.on('fileSuccess', function(file, message) {
+        r.on('fileSuccess', function (file, message) {
             document.getElementById('resumable-progress-text').textContent = '上传成功!';
-            setTimeout(function() {
-                // 检查是否为版本上传，如果是则跳转到版本历史页面
+            setTimeout(function () {
+                // 检查是否为版本上传，如果是则跳转到版本页面
                 if (options.isVersionUpload && options.groupId && options.fileId) {
                     window.location.href = '/file/version_history/' + options.groupId + '/' + options.fileId;
                 } else {
@@ -128,17 +143,54 @@ function initializeResumableUpload(options) {
                 }
             }, 1000);
         });
-        
+
         // 文件上传错误事件
-        r.on('fileError', function(file, message) {
+        r.on('fileError', function (file, message) {
             document.getElementById('resumable-progress-text').textContent = '上传失败: ' + message;
         });
-        
+
+        // 使用事件委托处理删除按钮点击事件
+        if (fileListElement) {
+            fileListElement.addEventListener('click', function (event) {
+                // 检查点击的是否是删除按钮或者其子元素
+                var removeButton = event.target.closest('.remove-file');
+                if (removeButton) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    var fileUniqueId = removeButton.getAttribute('data-file-unique-id');
+
+                    // 查找要删除的文件
+                    var fileToRemove = null;
+                    for (var i = 0; i < r.files.length; i++) {
+                        if (r.files[i].uniqueIdentifier === fileUniqueId) {
+                            fileToRemove = r.files[i];
+                            break;
+                        }
+                    }
+
+                    if (fileToRemove) {
+                        r.removeFile(fileToRemove);
+                        // 手动调用更新文件列表以确保界面更新
+                        updateFileList();
+                        // 检查是否所有文件都被删除，如果是则禁用上传按钮
+                        if (r.files.length === 0) {
+                            document.getElementById('resumable-upload').disabled = true;
+                        }
+                    }
+                    return false;
+                }
+            });
+        }
+
         // 更新文件列表显示
         function updateFileList() {
             // 清空现有列表
+            if (!fileListElement) {
+                return;
+            }
             fileListElement.innerHTML = '';
-            
+
             // 更新文件计数
             var fileCount = r.files.length;
             if (fileCount === 0) {
@@ -147,9 +199,9 @@ function initializeResumableUpload(options) {
             } else {
                 fileCountElement.textContent = `（已选择 ${fileCount} 个文件）`;
                 selectedFilesListElement.style.display = 'block';
-                
+
                 // 添加每个文件到列表
-                r.files.forEach(function(file) {
+                r.files.forEach(function (file) {
                     var li = document.createElement('li');
                     li.className = 'list-group-item d-flex justify-content-between align-items-center';
                     li.innerHTML = `
@@ -157,27 +209,14 @@ function initializeResumableUpload(options) {
                             <div>${file.fileName}</div>
                             <small class="text-muted">${formatFileSize(file.size)}</small>
                         </div>
-                        <button class="btn btn-sm btn-danger remove-file" data-file-unique-id="${file.uniqueIdentifier}">移除</button>
+                        <button class="btn btn-sm btn-danger remove-file" data-file-unique-id="${file.uniqueIdentifier}" type="button">移除</button>
                     `;
                     fileListElement.appendChild(li);
-                });
-                
-                // 为移除按钮添加事件监听器
-                document.querySelectorAll('.remove-file').forEach(function(button) {
-                    button.addEventListener('click', function() {
-                        var fileUniqueId = this.getAttribute('data-file-unique-id');
-                        var fileToRemove = r.files.find(function(file) {
-                            return file.uniqueIdentifier === fileUniqueId;
-                        });
-                        if (fileToRemove) {
-                            r.removeFile(fileToRemove);
-                        }
-                    });
                 });
             }
         }
     }
-    
+
     // 格式化文件大小的辅助函数
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
