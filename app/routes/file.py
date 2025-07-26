@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_from_directory, redirect, url_for, flash, current_app, render_template
+from flask import Blueprint, request, jsonify, send_from_directory, redirect, url_for, flash, current_app, render_template, make_response
 from app import db
 from app.models import Group, File, FileVersion
 from flask_login import login_required, current_user
@@ -77,12 +77,126 @@ def handle_upload_common(group, file=None, redirect_endpoint=None, redirect_para
 
 @file.route('/upload/<group_id>', methods=['POST'])
 def upload(group_id):
+    # 检查是否是Resumable.js的分块上传请求
+    resumable_identifier = request.form.get('resumableIdentifier', '')
+    resumable_filename = request.form.get('resumableFilename', '')
+    resumable_chunk_number = request.form.get('resumableChunkNumber', '')
+    
+    if resumable_identifier:
+        # 处理Resumable.js上传
+        return handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number)
+    
     group = Group.query.get_or_404(group_id)
     return handle_upload_common(
         group=group,
         redirect_endpoint='group.view',
         redirect_params={'group_id': group_id}
     )
+
+@file.route('/upload/<group_id>/chunk', methods=['GET'])
+def check_chunk(group_id):
+    """检查分块是否已存在"""
+    resumable_identifier = request.args.get('resumableIdentifier', '')
+    resumable_chunk_number = request.args.get('resumableChunkNumber', '')
+    resumable_filename = request.args.get('resumableFilename', '')
+    
+    # 构建分块文件路径
+    chunk_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'tmp', resumable_identifier)
+    chunk_file = os.path.join(chunk_dir, str(resumable_chunk_number))
+    
+    # 检查分块是否已存在
+    if os.path.exists(chunk_file):
+        return 'found', 200
+    else:
+        return 'not_found', 404
+
+def handle_resumable_upload(group_id, resumable_identifier, resumable_filename, resumable_chunk_number):
+    """处理Resumable.js上传请求"""
+    group = Group.query.get_or_404(group_id)
+    
+    # 检查小组是否只读
+    if group.is_readonly:
+        return jsonify({
+            'error': 'permission_denied',
+            'message': '该小组为只读，无法上传文件',
+            'group_id': group.id,
+            'is_readonly': True
+        }), 403
+    
+    # 创建临时目录存储分块
+    chunk_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'tmp', resumable_identifier)
+    os.makedirs(chunk_dir, exist_ok=True)
+    
+    # 保存上传的分块
+    chunk_file = os.path.join(chunk_dir, str(resumable_chunk_number))
+    uploaded_file = request.files['file']
+    uploaded_file.save(chunk_file)
+    
+    # 检查是否所有分块都已上传完成
+    resumable_total_chunks = int(request.form.get('resumableTotalChunks', 0))
+    if all_chunks_uploaded(chunk_dir, resumable_total_chunks):
+        # 合并所有分块
+        final_file_path = merge_chunks(chunk_dir, resumable_filename, resumable_total_chunks)
+        
+        # 创建一个类文件对象供handle_file_upload使用
+        class UploadedFile:
+            def __init__(self, path, filename):
+                self.path = path
+                self.filename = filename
+                self.content_type = 'application/octet-stream'  # 默认内容类型
+            
+            def save(self, target_path):
+                os.rename(self.path, target_path)
+        
+        file_upload = UploadedFile(final_file_path, resumable_filename)
+        
+        # 准备handle_file_upload参数
+        upload_kwargs = {
+            'group_id': group.id,
+            'file': file_upload,
+            'upload_folder': current_app.config['UPLOAD_FOLDER'],
+            'uploader': request.form.get('uploader', 'anonymous'),
+            'description': request.form.get('description', ''),
+            'comment': request.form.get('comment', '常规上传')
+        }
+        
+        # 处理文件上传
+        new_file = handle_file_upload(**upload_kwargs)
+        db.session.commit()
+        
+        # 清理临时分块文件
+        cleanup_chunks(chunk_dir)
+        
+        return jsonify({
+            'success': True,
+            'message': '文件上传成功',
+            'file_id': new_file.id,
+            'group_id': group.id
+        }), 200
+    else:
+        return 'chunk_uploaded', 200
+
+def all_chunks_uploaded(chunk_dir, total_chunks):
+    """检查是否所有分块都已上传"""
+    for i in range(1, total_chunks + 1):
+        if not os.path.exists(os.path.join(chunk_dir, str(i))):
+            return False
+    return True
+
+def merge_chunks(chunk_dir, filename, total_chunks):
+    """合并所有分块文件"""
+    final_file_path = os.path.join(chunk_dir, filename)
+    with open(final_file_path, 'wb') as final_file:
+        for i in range(1, total_chunks + 1):
+            chunk_file = os.path.join(chunk_dir, str(i))
+            with open(chunk_file, 'rb') as cf:
+                final_file.write(cf.read())
+    return final_file_path
+
+def cleanup_chunks(chunk_dir):
+    """清理临时分块文件"""
+    import shutil
+    shutil.rmtree(chunk_dir, ignore_errors=True)
 
 @file.route('/download/<group_id>/<file_id>')
 def download(group_id, file_id):

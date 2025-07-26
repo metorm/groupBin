@@ -30,14 +30,39 @@
         <h2>上传文件</h2>
     </div>
     <div class="card-body">
-        {{ render_upload_form(
-        action_url=url_for('file.upload', group_id=group.id),
-        button_text='上传文件',
-        allow_multiple=true,
-        show_uploader=true,
-        show_description=true,
-        show_comment=true
-        ) }}
+        <div id="resumable-upload-area">
+            <div class="mb-3">
+                <label for="resumable-file-upload" class="form-label">选择文件</label>
+                <input type="file" class="form-control" id="resumable-file-upload" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="resumable-description" class="form-label">文件描述</label>
+                <textarea class="form-control" id="resumable-description" rows="2" placeholder="输入文件描述..."></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="resumable-uploader" class="form-label">上传者</label>
+                <input type="text" class="form-control" id="resumable-uploader" placeholder="您的名称或标识">
+            </div>
+            
+            <div class="mb-3">
+                <label for="resumable-comment" class="form-label">版本说明</label>
+                <textarea class="form-control" id="resumable-comment" rows="2"></textarea>
+            </div>
+            
+            <button id="resumable-browse" class="btn btn-secondary me-2">选择文件</button>
+            <button id="resumable-upload" class="btn btn-primary" disabled>上传文件</button>
+            
+            <div id="resumable-progress" class="mt-3" style="display: none;">
+                <div class="progress">
+                    <div id="resumable-progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div id="resumable-progress-text" class="mt-1">准备上传...</div>
+            </div>
+            
+            <div id="resumable-file-list" class="mt-3"></div>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -110,6 +135,7 @@
     </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/resumable.js') }}"></script>
 <script src="{{ url_for('static', filename='js/groupbin.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/group.js') }}"></script>
 <script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
@@ -129,7 +155,85 @@
 </script>
 
 <script>
-    // ... existing code ...
+    // 初始化Resumable.js
+    document.addEventListener('DOMContentLoaded', function() {
+        // 创建Resumable实例
+        var r = new Resumable({
+            target: '{{ url_for("file.upload", group_id=group.id) }}',
+            chunkSize: 1024*1024, // 1MB
+            simultaneousUploads: 3,
+            testChunks: true,
+            throttleProgressCallbacks: 1,
+            method: "multipart",
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            query: {
+                uploader: document.getElementById('resumable-uploader').value,
+                description: document.getElementById('resumable-description').value,
+                comment: document.getElementById('resumable-comment').value
+            }
+        });
+        
+        // 检查浏览器是否支持
+        if(!r.support) {
+            alert('您的浏览器不支持分块上传，请更换浏览器或直接使用普通上传。');
+        } else {
+            // 分配事件
+            r.assignBrowse(document.getElementById('resumable-browse'));
+            r.assignDrop(document.getElementById('resumable-upload-area'));
+            
+            // 文件添加事件
+            r.on('fileAdded', function(file) {
+                document.getElementById('resumable-upload').disabled = false;
+                document.getElementById('resumable-file-list').innerHTML = 
+                    '<div>文件: ' + file.fileName + ' (' + formatFileSize(file.size) + ')</div>';
+            });
+            
+            // 上传按钮事件
+            document.getElementById('resumable-upload').addEventListener('click', function() {
+                // 更新上传参数
+                r.opts.query.uploader = document.getElementById('resumable-uploader').value;
+                r.opts.query.description = document.getElementById('resumable-description').value;
+                r.opts.query.comment = document.getElementById('resumable-comment').value;
+                
+                r.upload();
+            });
+            
+            // 上传进度事件
+            r.on('progress', function() {
+                var progress = Math.floor(r.progress() * 100);
+                document.getElementById('resumable-progress').style.display = 'block';
+                document.getElementById('resumable-progress-bar').style.width = progress + '%';
+                document.getElementById('resumable-progress-text').textContent = '上传进度: ' + progress + '%';
+            });
+            
+            // 文件成功上传事件
+            r.on('fileSuccess', function(file, message) {
+                document.getElementById('resumable-progress-text').textContent = '上传成功!';
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            });
+            
+            // 文件上传错误事件
+            r.on('fileError', function(file, message) {
+                document.getElementById('resumable-progress-text').textContent = '上传失败: ' + message;
+            });
+        }
+        
+        // 格式化文件大小的辅助函数
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    });
+</script>
+
+<script>
     document.getElementById('convertToReadonlyBtn')?.addEventListener('click', async function () {
         if (confirm('确定要将小组转为只读状态吗？此操作不可逆转！')) {
             try {
