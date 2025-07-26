@@ -222,3 +222,30 @@ document.addEventListener('DOMContentLoaded', function () {
         uploadFormsInitialized = true;
     }
 });
+
+// 通用UTC时间转换为本地时间函数
+document.addEventListener('DOMContentLoaded', function () {
+    const convertUtcToLocalTime = () => {
+        const utcElements = document.querySelectorAll('.utc-time');
+        utcElements.forEach(element => {
+            const utcTime = element.getAttribute('data-utc');
+            if (!utcTime) return;
+
+            const date = new Date(utcTime);
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            // 根据规范，只显示月、日和时间，隐去年份
+            const localTimeString = `${month}-${day} ${hours}:${minutes}`;
+            element.textContent = localTimeString;
+        });
+    };
+
+    // 执行转换
+    convertUtcToLocalTime();
+
+    // 暴露全局函数供动态内容加载后调用
+    window.convertUtcToLocalTime = convertUtcToLocalTime;
+});

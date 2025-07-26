@@ -43,7 +43,10 @@
         {% for version in versions %}
         <tr>
             <td>v{{ loop.revindex }}</td>
-            <td>{{ version.uploaded_at.strftime('%m-%d %H:%M') }}</td>
+            <td>
+                <span class="utc-time" data-utc="{{ version.uploaded_at.isoformat() }}Z">{{
+                    version.uploaded_at.strftime('%m-%d %H:%M') }}</span>
+            </td>
             <td>{{ version.uploader }}</td>
             <td>{{ version.comment }}</td>
             <td>{{ (version.size / 1024)|round(2) }} KB</td>
