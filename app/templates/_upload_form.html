@@ -2,7 +2,7 @@
 show_description=true, show_comment=true, group_id='', file_id='') %}
 <div id="resumable-upload-area" data-allow-multiple="{{ allow_multiple|lower }}" data-target="{{ action_url }}" 
      data-csrf-token="{{ csrf_token() }}" data-group-id="{{ group_id }}" data-file-id="{{ file_id }}"
-     data-is-version-upload="{{ 'upload_version' in action_url }}">
+     data-is-version-upload="{{ 'upload_version' in action_url }}" data-chunk-size="{{ config.CHUNK_SIZE }}">
     <div class="mb-3">
         <label class="form-label">选择文件</label>
         <div class="d-flex flex-wrap gap-2 mb-2">
@@ -91,7 +91,8 @@ show_description=true, show_comment=true, group_id='', file_id='') %}
             csrfToken: uploadArea.getAttribute('data-csrf-token'),
             groupId: uploadArea.getAttribute('data-group-id'),
             fileId: uploadArea.getAttribute('data-file-id'),
-            isVersionUpload: uploadArea.getAttribute('data-is-version-upload') === 'True'
+            isVersionUpload: uploadArea.getAttribute('data-is-version-upload') === 'True',
+            chunkSize: parseInt(uploadArea.getAttribute('data-chunk-size'))
         };
         
         // 初始化上传组件

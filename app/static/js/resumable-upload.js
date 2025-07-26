@@ -7,6 +7,7 @@
  * @param {string} options.groupId - 小组ID
  * @param {string} options.fileId - 文件ID（用于版本上传）
  * @param {boolean} options.isVersionUpload - 是否为版本上传
+ * @param {number} options.chunkSize - 分片大小（字节）
  */
 function initializeResumableUpload(options) {
     // 检查必要的元素是否存在
@@ -38,7 +39,7 @@ function initializeResumableUpload(options) {
     // 创建Resumable实例
     var r = new Resumable({
         target: options.target,
-        chunkSize: 1024 * 1024, // 1MB
+        chunkSize: options.chunkSize || 1024 * 1024, // 使用配置的分片大小，默认1MB
         simultaneousUploads: 3,
         testChunks: true,
         throttleProgressCallbacks: 1,
@@ -135,7 +136,7 @@ function initializeResumableUpload(options) {
         r.on('fileSuccess', function (file, message) {
             document.getElementById('resumable-progress-text').textContent = '上传成功!';
             setTimeout(function () {
-                // 检查是否为版本上传，如果是则跳转到版本页面
+                // 检查是否为版本上传，如果是则跳转到版本历史页面
                 if (options.isVersionUpload && options.groupId && options.fileId) {
                     window.location.href = '/file/version_history/' + options.groupId + '/' + options.fileId;
                 } else {
