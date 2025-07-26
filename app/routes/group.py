@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response, session
 import logging 
 import datetime
 from datetime import timedelta, timezone
@@ -50,7 +50,7 @@ def create():
     # GET请求显示创建表单
     return render_template('create_group.html')
 
-@group.route('/<group_id>')
+@group.route('/<group_id>', methods=['GET', 'POST'])
 def view(group_id):
     # 添加详细日志
     #current_app.logger.info(f"访问小组页面 - group_id: {group_id}")
@@ -67,6 +67,25 @@ def view(group_id):
     if is_expired:
         current_app.logger.warning(f"小组已过期，重定向到过期页面: {group_id}")
         return render_template('group_expired.html', group=group)
+    
+    # 检查小组是否有密码保护
+    if group.password_hash:  # 小组有密码保护
+        # 检查用户是否已经通过密码验证
+        authenticated_groups = session.get('authenticated_groups', [])
+        if group_id not in authenticated_groups:  # 用户尚未通过验证
+            if request.method == 'POST':  # 用户提交了密码
+                password = request.form.get('password', '')
+                if group.check_password(password):  # 密码正确
+                    # 将小组ID添加到已验证列表中
+                    authenticated_groups.append(group_id)
+                    session['authenticated_groups'] = authenticated_groups
+                    # 重定向到小组页面，避免表单重新提交
+                    return redirect(url_for('group.view', group_id=group_id))
+                else:  # 密码错误
+                    flash('密码错误，请重试', 'danger')
+            
+            # 显示密码输入页面
+            return render_template('group_password.html', group=group)
 
     #current_app.logger.info(f"准备渲染小组页面: {group_id}")
     return render_template('group.html', group=group, files=group.files, datetime=datetime)
