@@ -1,0 +1,97 @@
+# Docker部署指南
+
+本指南介绍了如何使用Docker部署groupBin应用。
+
+## 构建Docker镜像
+
+在项目根目录下运行以下命令构建Docker镜像：
+
+```bash
+docker build -t groupbin -f docker/Dockerfile .
+```
+
+或者使用docker-compose：
+
+```bash
+cd docker
+docker-compose build
+```
+
+## 配置
+
+### 环境变量
+
+Docker容器支持以下环境变量配置：
+
+- `PORT`: 服务端口，默认为5000
+- `FLASK_CONFIG`: Flask配置环境，可选`development`或`production`，默认为`production`
+- `ENV_FILE`: .env配置文件路径，默认为容器内的`/app/.env`
+- `DATA_DIR`: 数据存储目录，默认为`/data`
+
+### 数据持久化
+
+应用数据（数据库和上传文件）可以通过挂载卷实现持久化存储：
+
+- 数据库存储在`DATA_DIR`目录下（默认为`/data/groupbin.db`）
+- 上传文件存储在`DATA_DIR/data`目录下（默认为`/data/data`）
+
+### .env配置文件
+
+可以通过挂载卷的方式提供.env配置文件。示例配置文件内容：
+
+```
+FLASK_CONFIG=production
+SECRET_KEY=your-secret-key-here
+SITE_NAME=groupBin
+FOOTER_TEXT=注意：本服务仅用于临时文件共享，请勿上传敏感信息
+MAX_UPLOAD_SIZE_MB=4096
+MAX_RECENT_GROUPS=10
+DEFAULT_GROUP_DURATION_HOURS=72
+MAX_GROUP_DURATION_HOURS=720
+EXPIRED_FILE_CLEANUP_DAYS=7
+AUTH_DELAY_SECONDS=2
+SQLALCHEMY_DATABASE_URI=sqlite:////data/groupbin.db
+```
+
+## 运行容器
+
+### 使用Docker命令
+
+```bash
+docker run -d \
+  --name groupbin \
+  -p 5000:5000 \
+  -e PORT=5000 \
+  -e FLASK_CONFIG=production \
+  -e DATA_DIR=/data \
+  -v /path/to/your/data:/data \
+  -v /path/to/your/env:/config \
+  groupbin
+```
+
+### 使用docker-compose
+
+编辑`docker/docker-compose.yml`中的挂载路径，然后运行：
+
+```bash
+cd docker
+docker-compose up -d
+```
+
+## 目录结构
+
+当正确挂载卷后，数据目录将具有以下结构：
+
+```
+data/
+├── groupbin.db          # 数据库文件
+└── data/                # 上传文件目录
+    ├── tmp/             # 临时文件目录
+    └── {files}          # 上传的文件
+```
+
+## 注意事项
+
+1. 确保挂载的数据目录具有适当的读写权限
+2. 如果修改了端口配置，需要同时修改`-p`参数中的端口映射
+3. 生产环境建议使用`FLASK_CONFIG=production`配置

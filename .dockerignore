@@ -1,0 +1,22 @@
+# .dockerignore
+.git
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache
+.coverage
+.gitignore
+README.*
+ReadMe_*
+*.md
+.DS_Store
+.idea
+.vscode
+*.sqlite
+*.db
+.env
+instance/
+uploads/
+.dockerignore

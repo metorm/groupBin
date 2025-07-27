@@ -147,6 +147,14 @@ groupbin/
 - `EXPIRED_FILE_CLEANUP_DAYS`: 过期文件清理天数
 - `UNIFIED_PUBLIC_PASSWORD`: 统一密码
 
+#### 两个隐藏的设置项
+
+上传文件路径（主要的数据文件夹）
+UPLOAD_FOLDER=C:\uploads
+
+数据库路径：
+SQLALCHEMY_DATABASE_URI=sqlite:///groupbin.db
+
 #### 配置类 (config.py)
 - `Config`: 基础配置类
 - `DevelopmentConfig`: 开发环境配置

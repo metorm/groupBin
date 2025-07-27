@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  groupbin:
+    build: 
+      context: ../
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - FLASK_CONFIG=production
+      - ENV_FILE=/config/.env
+      - DATA_DIR=/data
+    volumes:
+      - ./data:/data
+      - ./config:/config
+    restart: unless-stopped

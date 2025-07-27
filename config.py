@@ -2,15 +2,24 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 
-# 加载.env文件
-load_dotenv()
-
 
 class Config:
     # 基础配置
     SECRET_KEY = os.getenv("SECRET_KEY")
-    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
-    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER")
+
+    # 数据库URI配置 - 如果使用默认的sqlite数据库，将其放在数据目录中
+    DATA_DIR = os.getenv("DATA_DIR", ".")
+    # 处理DATA_DIR相对路径，转换为绝对路径
+    if not os.path.isabs(DATA_DIR):
+        DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), DATA_DIR))
+
+    DATABASE_PATH = os.path.join(DATA_DIR, "groupbin.db")
+    SQLALCHEMY_DATABASE_URI = (
+        os.getenv("SQLALCHEMY_DATABASE_URI") or f"sqlite:///{DATABASE_PATH}"
+    )
+
+    # 上传目录配置 - 默认放在数据目录下的data子目录中
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(DATA_DIR, "data"))
 
     # 处理相对路径，转换为绝对路径
     if not os.path.isabs(UPLOAD_FOLDER):
@@ -41,6 +50,18 @@ class Config:
     UNIFIED_PUBLIC_PASSWORD = os.getenv("UNIFIED_PUBLIC_PASSWORD")
     CREATE_GROUP_PUBLIC_PASSWORD = os.getenv("CREATE_GROUP_PUBLIC_PASSWORD")
 
+    def __init__(self):
+        """在配置对象构造完成后，输出自身的所有属性和值，便于调试"""
+        if os.getenv("FLASK_ENV") == "development":
+            print("=" * 50)
+            print("Configuration Properties:")
+            print("=" * 50)
+            for attr in dir(self):
+                # 只打印公共属性（不以下划线开头的）
+                if not attr.startswith("_") and not callable(getattr(self, attr)):
+                    print(f"{attr}: {getattr(self, attr)}")
+            print("=" * 50)
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -51,9 +72,13 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+    LOG_LEVEL = "WARNING"
+    LOGGING_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     TESTING = False
-    # 生产环境密钥直接从.env读取
-    SECRET_KEY = os.getenv("SECRET_KEY")
 
 
-config = {"development": DevelopmentConfig, "production": ProductionConfig}
+config = {
+    "development": DevelopmentConfig,
+    "production": ProductionConfig,
+    "default": DevelopmentConfig,
+}
