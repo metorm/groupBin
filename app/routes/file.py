@@ -223,8 +223,24 @@ def handle_resumable_upload(
     # 保存上传的分块
     chunk_file = os.path.join(chunk_dir, str(resumable_chunk_number))
     uploaded_file = request.files["file"]
-    uploaded_file.save(chunk_file)
-
+    
+    # 使用.un-complete后缀，防止文件写入过程中被其他线程误认为已完成
+    chunk_file_temp = chunk_file + ".un-complete"
+    uploaded_file.save(chunk_file_temp)
+    
+    # 确保文件完全写入磁盘后再重命名
+    os.rename(chunk_file_temp, chunk_file)
+    
+    # 等待文件重命名完成，最多等待1秒
+    max_wait_time = 1.0  # 最长等待1秒
+    wait_interval = 0.1  # 每次检查间隔0.1秒
+    elapsed_time = 0
+    while elapsed_time < max_wait_time:
+        if os.path.exists(chunk_file) and not os.path.exists(chunk_file_temp):
+            break
+        time.sleep(wait_interval)
+        elapsed_time += wait_interval
+    
     # 获取请求的唯一标识符
     request_id = getattr(threading.current_thread(), "ident", "unknown")
 
