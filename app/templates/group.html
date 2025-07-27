@@ -67,10 +67,10 @@
                                 {% endif %}
                             </div>
                         </td>
-                        <td class="align-middle file-size" data-size="{{ file.size }}">-</td>
+                        <td class="align-middle file-size" data-size="{{ file.versions[-1].size }}">-</td>
                         <td class="align-middle">
-                            <span class="utc-time" data-utc="{{ file.uploaded_at.isoformat() }}Z">{{
-                                file.uploaded_at.strftime('%m-%d %H:%M') }}</span>
+                            <span class="utc-time" data-utc="{{ file.versions[-1].uploaded_at.isoformat() }}Z">{{
+                                file.versions[-1].uploaded_at.strftime('%m-%d %H:%M') }}</span>
                         </td>
                         <td class="align-middle">{{ file.versions[-1].uploader or '匿名' }}</td>
                         <td class="align-middle">{{ file.versions|length }}</td>
