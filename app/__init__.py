@@ -28,16 +28,12 @@ def setup_logging(app):
     log_level = getattr(logging, app.config.get('LOG_LEVEL', 'WARNING').upper(), logging.INFO)
     app.logger.setLevel(log_level)
     
-    # 创建控制台处理器
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
-    
-    # 设置日志格式
-    formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s : %(message)s')
-    console_handler.setFormatter(formatter)
-    
-    # 添加处理器
-    app.logger.addHandler(console_handler)
+    # 调整现有处理器的日志级别，而不是添加新的处理器
+    for handler in app.logger.handlers:
+        handler.setLevel(log_level)
+        # 设置日志格式
+        formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s : %(message)s')
+        handler.setFormatter(formatter)
 
 
 def create_app(config_name=None):
@@ -71,8 +67,12 @@ def create_app(config_name=None):
             app.logger.warning(f"无效的方法覆盖参数: {override_method}")
     
     # 确保上传文件夹存在
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    app.logger.info('Upload folder configured at: %s', app.config['UPLOAD_FOLDER'])
+    try:
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        app.logger.info('Upload folder configured at: %s', app.config['UPLOAD_FOLDER'])
+    except Exception as e:
+        app.logger.error('Failed to create upload folder: %s', str(e))
+        raise
     
     # 注册全局404错误处理器
     @app.errorhandler(404)
@@ -92,9 +92,21 @@ def create_app(config_name=None):
 
     # 创建数据库表
     with app.app_context():
-        db.create_all()
-        app.logger.info('Database tables created')
+        try:
+            db.create_all()
+            app.logger.info('Database tables created successfully')
+        except Exception as e:
+            app.logger.error('Failed to create database tables: %s', str(e))
+            raise
     
+    # 验证关键配置
+    required_configs = ['SECRET_KEY', 'UPLOAD_FOLDER', 'SQLALCHEMY_DATABASE_URI']
+    for config_key in required_configs:
+        if not app.config.get(config_key):
+            app.logger.error(f'Missing required configuration: {config_key}')
+            raise ValueError(f'Missing required configuration: {config_key}')
+    
+    app.logger.info('Application instance created successfully')
     return app
 
 
