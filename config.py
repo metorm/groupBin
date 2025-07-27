@@ -59,6 +59,11 @@ class Config:
     SESSION_LIFETIME_HOURS = int(os.getenv("SESSION_LIFETIME_HOURS", "168"))  # 从环境变量获取过期时间，默认168小时
     PERMANENT_SESSION_LIFETIME = timedelta(hours=SESSION_LIFETIME_HOURS)  # 会话有效期
 
+    # 日志配置
+    LOG_FILE = os.path.join(DATA_DIR, "groupbin.log")  # 日志文件路径
+    LOG_FILE_MAX_SIZE = int(os.getenv("LOG_FILE_MAX_SIZE_MB", "10")) * 1024 * 1024  # 日志文件最大大小，默认10MB
+    LOG_FILE_BACKUP_COUNT = int(os.getenv("LOG_FILE_BACKUP_COUNT", "5"))  # 日志文件备份数量，默认5个
+
     def __init__(self):
         """在配置对象构造完成后，输出自身的所有属性和值，便于调试"""
         if os.getenv("FLASK_ENV") == "development":

@@ -6,6 +6,7 @@ from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, request
 from flask_session import Session
 
@@ -37,11 +38,43 @@ def setup_logging(app):
     # 调整现有处理器的日志级别，而不是添加新的处理器
     for handler in app.logger.handlers:
         handler.setLevel(log_level)
-        # 设置日志格式
+        # 设置日志格式（控制台格式）
         formatter = logging.Formatter(
             "[%(asctime)s] %(levelname)s in %(name)s : %(message)s"
         )
         handler.setFormatter(formatter)
+
+    # 创建RotatingFileHandler
+    if app.config.get("LOG_FILE"):
+        # 确保日志目录存在
+        log_dir = os.path.dirname(app.config["LOG_FILE"])
+        os.makedirs(log_dir, exist_ok=True)
+
+        # 创建RotatingFileHandler
+        file_handler = RotatingFileHandler(
+            app.config["LOG_FILE"],
+            maxBytes=app.config.get("LOG_FILE_MAX_SIZE", 10 * 1024 * 1024),  # 默认10MB
+            backupCount=app.config.get("LOG_FILE_BACKUP_COUNT", 5),  # 默认保留5个备份
+        )
+
+        # 设置纯文本日志格式
+        file_formatter = logging.Formatter(
+            "[%(asctime)s] %(levelname)s in %(name)s: %(message)s"
+        )
+        file_handler.setFormatter(file_formatter)
+        file_handler.setLevel(log_level)
+
+        # 添加处理器到app.logger
+        app.logger.addHandler(file_handler)
+
+        # 同时也添加到根日志记录器，确保所有日志都被记录
+        root_logger = logging.getLogger()
+        root_logger.addHandler(file_handler)
+        root_logger.setLevel(log_level)
+
+        app.logger.info(
+            "RotatingFileHandler configured for: %s", app.config["LOG_FILE"]
+        )
 
 
 def create_app(config_name=None):
