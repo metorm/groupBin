@@ -15,9 +15,8 @@
             <button class="btn btn-sm btn-outline-primary" id="copy-link-btn">
                 <i class="bi bi-link"></i> 复制页面地址
             </button>
-            <button class="btn btn-sm btn-outline-secondary" id="copy-id-btn" 
-                    data-bs-toggle="tooltip" data-bs-placement="top" 
-                    title="通过公共信道仅发送小组ID，不含网址更安全">
+            <button class="btn btn-sm btn-outline-secondary" id="copy-id-btn" data-toggle="tooltip"
+                title="通过公共信道仅发送小组ID，不含网址更安全">
                 <i class="bi bi-clipboard"></i> 复制小组ID
             </button>
             {% if group.allow_convert_to_readonly and not group.is_readonly %}
@@ -143,7 +142,6 @@
 </script>
 
 <script>
-    // 复制功能实现
     document.addEventListener('DOMContentLoaded', function () {
         // 复制页面地址按钮
         const copyLinkBtn = document.getElementById('copy-link-btn');
@@ -183,12 +181,11 @@
             });
         }
 
-        // 初始化Bootstrap工具提示
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
+
+        // tooltip
+        $(function () { $("[data-toggle='tooltip']").tooltip(); });
     });
+
 </script>
 
 <script>

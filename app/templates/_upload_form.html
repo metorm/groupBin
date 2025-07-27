@@ -1,17 +1,16 @@
 {% macro render_upload_form(action_url, button_text, allow_multiple=false, show_uploader=true, default_uploader='',
 show_description=true, show_comment=true, group_id='', file_id='') %}
-<div id="resumable-upload-area" data-allow-multiple="{{ allow_multiple|lower }}" data-target="{{ action_url }}" 
-     data-csrf-token="{{ csrf_token() }}" data-group-id="{{ group_id }}" data-file-id="{{ file_id }}"
-     data-is-version-upload="{{ 'upload_version' in action_url }}" data-chunk-size="{{ config.CHUNK_SIZE }}">
+<div id="resumable-upload-area" data-allow-multiple="{{ allow_multiple|lower }}" data-target="{{ action_url }}"
+    data-csrf-token="{{ csrf_token() }}" data-group-id="{{ group_id }}" data-file-id="{{ file_id }}"
+    data-is-version-upload="{{ 'upload_version' in action_url }}" data-chunk-size="{{ config.CHUNK_SIZE }}">
     <div class="mb-3">
-        <label class="form-label">选择文件</label>
         <div class="d-flex flex-wrap gap-2 mb-2">
             <button id="resumable-browse" class="btn btn-outline-secondary" type="button">
-                <i class="bi bi-file-earmark-arrow-up"></i> 
+                <i class="bi bi-file-earmark-arrow-up"></i>
                 {% if 'upload_version' in action_url %}
-                    选择新版文件
+                选择新版文件
                 {% else %}
-                    添加文件
+                添加文件
                 {% endif %}
             </button>
             {% if allow_multiple %}
@@ -32,46 +31,47 @@ show_description=true, show_comment=true, group_id='', file_id='') %}
             <span id="file-count">（尚未选择文件）</span>
         </div>
     </div>
-    
+
     <div id="selected-files-list" class="mb-3" style="display: none;">
         <h6>已选择的文件:</h6>
         <ul id="file-list" class="list-group"></ul>
     </div>
-    
+
     {% if show_description %}
     <div class="mb-3">
         <label for="resumable-description" class="form-label">文件描述</label>
         <textarea class="form-control" id="resumable-description" rows="2" placeholder="输入文件描述..."></textarea>
     </div>
     {% endif %}
-    
+
     {% if show_uploader %}
     <div class="mb-3">
         <label for="resumable-uploader" class="form-label">上传者</label>
-        <input type="text" class="form-control" id="resumable-uploader" placeholder="您的名称或标识" value="{{ default_uploader }}">
+        <input type="text" class="form-control" id="resumable-uploader" placeholder="您的名称或标识"
+            value="{{ default_uploader }}">
     </div>
     {% else %}
     <input type="hidden" id="resumable-uploader" value="{{ default_uploader }}">
     {% endif %}
-    
+
     {% if show_comment %}
     <div class="mb-3">
         <label for="resumable-comment" class="form-label">版本说明</label>
         <textarea class="form-control" id="resumable-comment" rows="2"></textarea>
     </div>
     {% endif %}
-    
+
     <button id="resumable-upload" class="btn btn-primary" disabled>执行上传</button>
-    
+
     <div id="resumable-progress" class="mt-3" style="display: none;">
         <div class="progress">
             <div id="resumable-progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
         </div>
         <div id="resumable-progress-text" class="mt-1">准备上传...</div>
     </div>
-    
+
     <div id="resumable-file-list" class="mt-3"></div>
-    
+
     <!-- 隐藏的文件输入元素 -->
     <input type="file" id="resumable-file-input" style="display: none;" {% if allow_multiple %}multiple{% endif %}>
 </div>
@@ -80,11 +80,11 @@ show_description=true, show_comment=true, group_id='', file_id='') %}
 <script src="{{ url_for('static', filename='js/resumable-upload.js') }}"></script>
 <script>
     // 初始化Resumable.js
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // 获取配置参数
         var uploadArea = document.getElementById('resumable-upload-area');
         if (!uploadArea) return;
-        
+
         var options = {
             target: uploadArea.getAttribute('data-target'),
             allowMultiple: uploadArea.getAttribute('data-allow-multiple') === 'true',
@@ -94,7 +94,7 @@ show_description=true, show_comment=true, group_id='', file_id='') %}
             isVersionUpload: uploadArea.getAttribute('data-is-version-upload') === 'True',
             chunkSize: parseInt(uploadArea.getAttribute('data-chunk-size'))
         };
-        
+
         // 初始化上传组件
         initializeResumableUpload(options);
     });
