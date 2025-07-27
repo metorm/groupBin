@@ -26,6 +26,17 @@ login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 
 
+def log_configuration(app):
+    """将配置信息输出到日志中"""
+    if app.config.get("DEBUG", False):
+        app.logger.info("=" * 50)
+        app.logger.info("Configuration Properties:")
+        app.logger.info("=" * 50)
+        for key in app.config.keys():
+            app.logger.info(f"{key}: {app.config[key]}")
+        app.logger.info("=" * 50)
+
+
 # 添加日志配置
 def setup_logging(app):
     # 设置日志级别
@@ -64,10 +75,6 @@ def setup_logging(app):
         file_handler.setFormatter(file_formatter)
         file_handler.setLevel(log_level)
 
-        # 添加处理器到app.logger
-        app.logger.addHandler(file_handler)
-
-        # 同时也添加到根日志记录器，确保所有日志都被记录
         root_logger = logging.getLogger()
         root_logger.addHandler(file_handler)
         root_logger.setLevel(log_level)
@@ -79,7 +86,7 @@ def setup_logging(app):
 
 def create_app(config_name=None):
     if not config_name:
-        config_name = os.environ.get("FLASK_CONFIG", "development")
+        config_name = os.environ.get("FLASK_CONFIG", "default")
 
     app = Flask(__name__)
     app.config.from_object(config[config_name])  # 从配置对象加载配置
@@ -87,6 +94,9 @@ def create_app(config_name=None):
     # 初始化日志
     setup_logging(app)
     app.logger.info("Application initialized with config: %s", config_name)
+
+    # 输出配置信息到日志
+    log_configuration(app)
 
     # 确保session目录存在
     if app.config.get("SESSION_FILE_DIR"):
