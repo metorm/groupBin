@@ -2,6 +2,33 @@
 
 本指南介绍了如何使用Docker部署groupBin应用。
 
+## 构建参数
+
+- `USE_CHINA_PIP_MIRROR`: 是否使用国内pip镜像源 (默认: false)
+- `PIP_MIRROR_URL`: pip镜像源地址 (默认: https://pypi.tuna.tsinghua.edu.cn/simple)
+
+## 快速开始
+
+```bash
+# 构建镜像
+docker build -t groupbin -f docker/Dockerfile .
+
+# 运行容器
+docker run -d -p 5000:5000 --name groupbin groupbin
+```
+
+## 使用国内pip镜像加速构建
+
+如果您在中国大陆，可以使用以下命令启用国内pip镜像源以加速依赖安装：
+
+```bash
+# 使用清华大学pip镜像源
+docker build --build-arg USE_CHINA_PIP_MIRROR=true -t groupbin -f docker/Dockerfile .
+
+# 使用自定义pip镜像源
+docker build --build-arg USE_CHINA_PIP_MIRROR=true --build-arg PIP_MIRROR_URL=https://mirrors.aliyun.com/pypi/simple -t groupbin -f docker/Dockerfile .
+```
+
 ## 构建Docker镜像
 
 在项目根目录下运行以下命令构建Docker镜像：
@@ -17,7 +44,7 @@ cd docker
 docker-compose build
 ```
 
-## 配置
+## 配置选项
 
 ### 环境变量
 

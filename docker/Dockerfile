@@ -1,6 +1,15 @@
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 WORKDIR /app
+
+# 定义参数，允许使用国内pip镜像加速依赖安装
+ARG USE_CHINA_PIP_MIRROR=false
+ARG PIP_MIRROR_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 配置pip镜像源（如果启用）
+RUN if [ "$USE_CHINA_PIP_MIRROR" = "true" ]; then \
+        pip config set global.index-url $PIP_MIRROR_URL; \
+    fi
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
