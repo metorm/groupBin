@@ -32,6 +32,19 @@ function formatTimeDifference(expiresAt) {
 }
 
 /**
+ * 格式化文件大小显示
+ * @param {number} bytes - 文件大小（字节）
+ * @returns {string} 格式化后的文件大小文本
+ */
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
  * 更新页面上所有过期时间显示
  */
 function updateAllExpirationTimes() {

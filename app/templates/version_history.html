@@ -49,7 +49,7 @@
             </td>
             <td>{{ version.uploader }}</td>
             <td>{{ version.comment }}</td>
-            <td>{{ (version.size / 1024)|round(2) }} KB</td>
+            <td class="file-size" data-size="{{ version.size }}">-</td>
             <td>
                 <div class="d-flex flex-column gap-1">
                     <a href="{{ url_for('file.download_version', group_id=group.id, file_id=file.id, version_id=version.id) }}"
@@ -64,5 +64,17 @@
 <a href="{{ url_for('group.view', group_id=group.id) }}" class="btn btn-secondary">返回小组</a>
 
 <script src="{{ url_for('static', filename='js/groupbin.js') }}"></script>
+
+<script>
+    // 格式化页面上的文件大小显示
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.file-size').forEach(function(element) {
+            const size = parseInt(element.getAttribute('data-size'));
+            if (!isNaN(size)) {
+                element.textContent = formatFileSize(size);
+            }
+        });
+    });
+</script>
 
 {% endblock %}
