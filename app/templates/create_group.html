@@ -32,7 +32,8 @@
 
                     <div class="mb-3">
                         <label for="password" class="form-label">访问密码</label>
-                        <input type="password" class="form-control" id="password" name="password" placeholder="留空则无需密码">
+                        <input type="password" class="form-control" id="password" name="password"
+                            placeholder="{{ '留空则需要使用小组公用密码访问' if unified_password else '留空则无需密码即可访问' }}">
                     </div>
 
                     <div class="mb-3">

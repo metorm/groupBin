@@ -145,7 +145,7 @@ groupbin/
 - `FOOTER_TEXT`: 页脚文本
 - `AUTH_DELAY_SECONDS`: 认证延迟时间（秒）
 - `EXPIRED_FILE_CLEANUP_DAYS`: 过期文件清理天数
-- `UNIFIED_PASSWORD`: 统一密码
+- `UNIFIED_PUBLIC_PASSWORD`: 统一密码
 
 #### 配置类 (config.py)
 - `Config`: 基础配置类

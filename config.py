@@ -35,10 +35,11 @@ class Config:
     SITE_DESCRIPTION = os.getenv("SITE_DESCRIPTION")
     FOOTER_TEXT = os.getenv("FOOTER_TEXT")
 
-    # 新增配置项
+    # 系统配置
     AUTH_DELAY_SECONDS = int(os.getenv("AUTH_DELAY_SECONDS"))
     EXPIRED_FILE_CLEANUP_DAYS = int(os.getenv("EXPIRED_FILE_CLEANUP_DAYS"))
-    UNIFIED_PASSWORD = os.getenv("UNIFIED_PASSWORD")
+    UNIFIED_PUBLIC_PASSWORD = os.getenv("UNIFIED_PUBLIC_PASSWORD")
+    CREATE_GROUP_PUBLIC_PASSWORD = os.getenv("CREATE_GROUP_PUBLIC_PASSWORD")
 
 
 class DevelopmentConfig(Config):

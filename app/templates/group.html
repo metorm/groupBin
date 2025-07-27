@@ -112,24 +112,113 @@
     </div>
     <div class="card-body">
         {{ render_upload_form(
-            action_url=url_for('file.upload', group_id=group.id),
-            button_text='上传文件',
-            allow_multiple=true,
-            show_uploader=true,
-            default_uploader=group.creator or '',
-            show_description=true,
-            show_comment=false,
-            group_id=group.id
+        action_url=url_for('file.upload', group_id=group.id),
+        button_text='上传文件',
+        allow_multiple=true,
+        show_uploader=true,
+        default_uploader=group.creator or '',
+        show_description=true,
+        show_comment=false,
+        group_id=group.id
         ) }}
     </div>
 </div>
 {% endif %}
 
+<script type="module" src="{{ url_for('static', filename='js/group.js') }}"></script>
+<script src="{{ url_for('static', filename='js/historyManager.js') }}"></script>
+<script>
+    // 页面加载完成后更新小组访问记录
+    document.addEventListener('DOMContentLoaded', function () {
+        // 获取当前小组信息
+        const groupInfo = {
+            id: '{{ group.id }}',
+            name: '{{ group.name or group.id }}',
+            expiresAt: '{{ group.expires_at.isoformat() }}'
+        };
+
+        // 更新访问历史
+        GroupHistoryManager.updateHistory(groupInfo);
+    });
+</script>
+
+
 <script src="{{ url_for('static', filename='js/groupbin.js') }}"></script>
 <script>
+    // 有关复制
+    document.addEventListener('DOMContentLoaded', function () {
+        // 复制页面地址按钮
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', function () {
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(function () {
+                    // 显示成功提示
+                    const originalText = copyLinkBtn.innerHTML;
+                    copyLinkBtn.innerHTML = '<i class="bi bi-check"></i> 已复制';
+                    setTimeout(function () {
+                        copyLinkBtn.innerHTML = originalText;
+                    }, 2000);
+                }).catch(function (err) {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制地址');
+                });
+            });
+        }
+
+        // 复制小组ID按钮
+        const copyIdBtn = document.getElementById('copy-id-btn');
+        if (copyIdBtn) {
+            copyIdBtn.addEventListener('click', function () {
+                const groupId = '{{ group.id }}';
+                navigator.clipboard.writeText(groupId).then(function () {
+                    // 显示成功提示
+                    const originalText = copyIdBtn.innerHTML;
+                    copyIdBtn.innerHTML = '<i class="bi bi-check"></i> 已复制';
+                    setTimeout(function () {
+                        copyIdBtn.innerHTML = originalText;
+                    }, 2000);
+                }).catch(function (err) {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动复制小组ID');
+                });
+            });
+        }
+
+
+        // tooltip
+        $(function () { $("[data-toggle='tooltip']").tooltip(); });
+    });
+
+    // 只读转换代码
+    document.getElementById('convertToReadonlyBtn')?.addEventListener('click', async function () {
+        if (confirm('确定要将小组转为只读状态吗？此操作不可逆转！')) {
+            try {
+                const response = await fetch("{{ url_for('group.convert_to_readonly', group_id=group.id) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('小组已成功转为只读状态');
+                    window.location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('转换失败:', error);
+                alert('转换失败，请重试');
+            }
+        }
+    });
+
     // 格式化页面上的文件大小显示
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.file-size').forEach(function(element) {
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.file-size').forEach(function (element) {
             const size = parseInt(element.getAttribute('data-size'));
             if (!isNaN(size)) {
                 element.textContent = formatFileSize(size);
