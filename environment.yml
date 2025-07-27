@@ -8,6 +8,7 @@ dependencies:
       - flask
       - flask-sqlalchemy
       - flask-login
+      - flask-session
       - werkzeug
       - python-dotenv
       - flask-cors

@@ -18,6 +18,12 @@ import os
 group = Blueprint("group", __name__)
 
 
+@group.before_request
+def update_last_activity():
+    """更新用户最后活动时间"""
+    session["last_activity"] = datetime.datetime.now(timezone.utc).timestamp()
+
+
 @group.route("/create", methods=["GET", "POST"])
 def create():
     # 检查是否需要创建小组密码验证

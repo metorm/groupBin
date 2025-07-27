@@ -20,7 +20,8 @@ RUN pip install --no-cache-dir \
     pycryptodome \
     python-multipart \
     tqdm \
-    flask-wtf
+    flask-wtf \
+    flask-session
 
 # 复制应用代码
 COPY . .

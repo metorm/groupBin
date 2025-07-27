@@ -6,8 +6,8 @@ from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 import os
 import logging
-from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, request
+from flask_session import Session
 
 # 从环境变量获取.env文件路径，优先级高于默认位置
 env_file = os.getenv("ENV_FILE")
@@ -55,11 +55,21 @@ def create_app(config_name=None):
     setup_logging(app)
     app.logger.info("Application initialized with config: %s", config_name)
 
+    # 确保session目录存在
+    if app.config.get("SESSION_FILE_DIR"):
+        os.makedirs(app.config["SESSION_FILE_DIR"], exist_ok=True)
+        app.logger.info(
+            "Session folder configured at: %s", app.config["SESSION_FILE_DIR"]
+        )
+
     # 初始化扩展
     db.init_app(app)
     login_manager.init_app(app)
     CORS(app)
     CSRFProtect(app)  # 初始化CSRF保护
+
+    # 初始化Session
+    Session(app)
 
     # 添加方法覆盖处理
     @app.before_request

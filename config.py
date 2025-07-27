@@ -50,6 +50,15 @@ class Config:
     UNIFIED_PUBLIC_PASSWORD = os.getenv("UNIFIED_PUBLIC_PASSWORD")
     CREATE_GROUP_PUBLIC_PASSWORD = os.getenv("CREATE_GROUP_PUBLIC_PASSWORD")
 
+    # Session配置
+    SESSION_TYPE = "filesystem"  # 使用文件系统存储session
+    SESSION_FILE_DIR = os.path.join(DATA_DIR, "sessions")  # Session文件存储在DATA_DIR下
+    SESSION_PERMANENT = True
+    SESSION_USE_SIGNER = True
+    SESSION_KEY_PREFIX = "groupbin:"
+    SESSION_LIFETIME_HOURS = int(os.getenv("SESSION_LIFETIME_HOURS", "168"))  # 从环境变量获取过期时间，默认168小时
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=SESSION_LIFETIME_HOURS)  # 会话有效期
+
     def __init__(self):
         """在配置对象构造完成后，输出自身的所有属性和值，便于调试"""
         if os.getenv("FLASK_ENV") == "development":
@@ -73,8 +82,6 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     LOG_LEVEL = "WARNING"
-    LOGGING_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    TESTING = False
 
 
 config = {
