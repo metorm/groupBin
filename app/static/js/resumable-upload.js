@@ -132,11 +132,35 @@ function initializeResumableUpload(options) {
             document.getElementById('resumable-progress-text').textContent = '上传进度: ' + progress + '%';
         });
 
+        // 跟踪已成功的文件数量
+        var completedFiles = 0;
+
         // 文件成功上传事件
         r.on('fileSuccess', function (file, message) {
-            document.getElementById('resumable-progress-text').textContent = '上传成功!';
+            completedFiles++;
+            // 检查是否所有文件都已上传完成
+            if (completedFiles >= r.files.length) {
+                // 所有文件都已上传完成
+                document.getElementById('resumable-progress-text').textContent = '所有文件上传成功!';
+                setTimeout(function () {
+                    // 检查是否为版本上传，如果是则跳转到版本历史页面
+                    if (options.isVersionUpload && options.groupId && options.fileId) {
+                        window.location.href = '/file/version_history/' + options.groupId + '/' + options.fileId;
+                    } else {
+                        location.reload();
+                    }
+                }, 1000);
+            } else {
+                // 部分文件已上传完成
+                var progressText = '已上传 ' + completedFiles + '/' + r.files.length + ' 个文件';
+                document.getElementById('resumable-progress-text').textContent = progressText;
+            }
+        });
+
+        // 所有文件上传完成事件
+        r.on('complete', function () {
+            // 作为额外保障，确保页面在所有文件上传完成后刷新
             setTimeout(function () {
-                // 检查是否为版本上传，如果是则跳转到版本历史页面
                 if (options.isVersionUpload && options.groupId && options.fileId) {
                     window.location.href = '/file/version_history/' + options.groupId + '/' + options.fileId;
                 } else {
@@ -200,20 +224,24 @@ function initializeResumableUpload(options) {
             } else {
                 fileCountElement.textContent = `（已选择 ${fileCount} 个文件）`;
                 selectedFilesListElement.style.display = 'block';
+            }
 
-                // 添加每个文件到列表
-                r.files.forEach(function (file) {
-                    var li = document.createElement('li');
-                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    li.innerHTML = `
-                        <div>
-                            <div>${file.fileName}</div>
-                            <small class="text-muted">${formatFileSize(file.size)}</small>
-                        </div>
-                        <button class="btn btn-sm btn-danger remove-file" data-file-unique-id="${file.uniqueIdentifier}" type="button">移除</button>
-                    `;
-                    fileListElement.appendChild(li);
-                });
+            // 填充文件列表
+            for (var i = 0; i < r.files.length; i++) {
+                var file = r.files[i];
+                var fileSize = formatFileSize(file.size);
+                var listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                listItem.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.fileName}</div>
+                        <small class="file-size text-muted">${fileSize}</small>
+                    </div>
+                    <button type="button" class="btn-close remove-file" 
+                            aria-label="删除" 
+                            data-file-unique-id="${file.uniqueIdentifier}"></button>
+                `;
+                fileListElement.appendChild(listItem);
             }
         }
     }
