@@ -26,87 +26,6 @@ from app.utils.file_handling import handle_file_upload
 file = Blueprint("file", __name__, url_prefix="/file")
 
 
-def handle_upload_common(
-    group, file=None, redirect_endpoint=None, redirect_params=None
-):
-    # 检查小组是否只读
-    if group.is_readonly:
-        return (
-            jsonify(
-                {
-                    "error": "permission_denied",
-                    "message": "该小组为只读，无法上传文件",
-                    "group_id": group.id,
-                    "is_readonly": True,
-                }
-            ),
-            403,
-        )
-
-    if "file" not in request.files:
-        return (
-            jsonify(
-                {"error": "no_file", "message": "未找到文件", "group_id": group.id}
-            ),
-            400,
-        )
-
-    file_upload = request.files["file"]
-    if file_upload.filename == "":
-        return (
-            jsonify(
-                {
-                    "error": "empty_filename",
-                    "message": "未选择文件",
-                    "group_id": group.id,
-                }
-            ),
-            400,
-        )
-
-    if file_upload:
-        # 准备handle_file_upload参数
-        upload_kwargs = {
-            "group_id": group.id,
-            "file": file_upload,
-            "upload_folder": current_app.config["UPLOAD_FOLDER"],
-            "uploader": request.form.get("uploader", "anonymous"),
-        }
-
-        # 根据是否为新文件设置不同参数
-        if file:
-            # 版本上传
-            upload_kwargs["file_id"] = file.id
-            upload_kwargs["description"] = file.description
-            upload_kwargs["comment"] = request.form.get("comment", "版本更新")
-        else:
-            # 新文件上传
-            upload_kwargs["description"] = request.form.get("description", "")
-            upload_kwargs["comment"] = request.form.get("comment", "常规上传")
-
-        # 处理文件上传
-        new_file = handle_file_upload(
-            **upload_kwargs
-        )  # Capture the returned file object
-        db.session.commit()
-
-        return jsonify(
-            {
-                "success": True,
-                "message": "文件上传成功",
-                "file_id": new_file.id if not file else file.id,
-                "group_id": group.id,
-            }
-        ), (200 if file else 201)
-
-    return (
-        jsonify(
-            {"error": "upload_failed", "message": "文件上传失败", "group_id": group.id}
-        ),
-        500,
-    )
-
-
 @file.route("/upload/<group_id>", methods=["GET", "POST"])
 def upload(group_id):
     return handle_file_request(group_id)
@@ -149,27 +68,6 @@ def handle_file_request(group_id, file_id=None):
                 resumable_filename,
                 resumable_chunk_number,
                 file_id,
-            )
-
-    # 处理普通的表单上传
-    if request.method == "POST":
-        group = Group.query.get_or_404(group_id)
-
-        if file_id:
-            # 版本上传
-            file_obj = File.query.get_or_404(file_id)
-            return handle_upload_common(
-                group=group,
-                file=file_obj,
-                redirect_endpoint="file.version_history",
-                redirect_params={"group_id": group_id, "file_id": file_id},
-            )
-        else:
-            # 新文件上传
-            return handle_upload_common(
-                group=group,
-                redirect_endpoint="group.view",
-                redirect_params={"group_id": group_id},
             )
 
     # 如果是GET请求但不是Resumable.js的检查请求，则返回405
