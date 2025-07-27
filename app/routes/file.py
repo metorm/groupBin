@@ -19,6 +19,7 @@ import os
 import uuid
 from datetime import datetime
 import zipfile
+import time
 from io import BytesIO
 from app.utils.file_handling import handle_file_upload
 
@@ -223,14 +224,14 @@ def handle_resumable_upload(
     # 保存上传的分块
     chunk_file = os.path.join(chunk_dir, str(resumable_chunk_number))
     uploaded_file = request.files["file"]
-    
+
     # 使用.un-complete后缀，防止文件写入过程中被其他线程误认为已完成
     chunk_file_temp = chunk_file + ".un-complete"
     uploaded_file.save(chunk_file_temp)
-    
+
     # 确保文件完全写入磁盘后再重命名
     os.rename(chunk_file_temp, chunk_file)
-    
+
     # 等待文件重命名完成，最多等待1秒
     max_wait_time = 1.0  # 最长等待1秒
     wait_interval = 0.1  # 每次检查间隔0.1秒
@@ -240,7 +241,10 @@ def handle_resumable_upload(
             break
         time.sleep(wait_interval)
         elapsed_time += wait_interval
-    
+    # 出循环检查
+    if os.path.exists(chunk_file_temp) or (not os.path.exists(chunk_file)):
+        current_app.logger.warning(f"文件重命名失败，请检查逻辑")
+
     # 获取请求的唯一标识符
     request_id = getattr(threading.current_thread(), "ident", "unknown")
 
@@ -251,101 +255,165 @@ def handle_resumable_upload(
         request.args.get("resumableTotalChunks", 0)
         or request.form.get("resumableTotalChunks", 0)
     )
-    if all_chunks_uploaded(chunk_dir, resumable_total_chunks):
+
+    if not all_chunks_uploaded(chunk_dir, resumable_total_chunks):
+        # 最常见的情况：上传了一个分块，没有其他工作要做
+        return "chunk_uploaded", 200
+
+    current_app.logger.info(
+        f"线程 {request_id} 启动分块合并进程…… {resumable_identifier}"
+    )
+
+    # 创建基于客户端IP+resumable_identifier的合并锁文件
+    # 使用request.remote_addr和resumable_identifier组合创建锁文件名
+    # TODO 反向代理？
+    lock_file_path = os.path.join(
+        current_app.config["UPLOAD_FOLDER"],
+        "tmp",
+        f"{request.remote_addr}_{resumable_identifier}.lock",
+    )
+
+    # 尝试获取锁
+    lock_fd = None
+    try:
+        # 尝试创建锁文件，如果文件已存在会抛出异常
+        lock_fd = os.open(lock_file_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         current_app.logger.info(
-            f"线程 {request_id} 启动分块合并进程…… {resumable_identifier}"
+            f"[Request {request_id}] 成功获取合并锁: {lock_file_path}"
         )
-
-        # 创建基于客户端IP+resumable_identifier的合并锁文件
-        # 使用request.remote_addr和resumable_identifier组合创建锁文件名
-        # TODO 反向代理？
-        lock_file_path = os.path.join(
-            current_app.config["UPLOAD_FOLDER"],
-            "tmp",
-            f"{request.remote_addr}_{resumable_identifier}.lock",
+    except FileExistsError:
+        # 锁已被其他进程获取
+        current_app.logger.info(
+            f"[Request {request_id}] 合并锁已被占用，另一个线程正在进行合并: {lock_file_path}"
         )
+        # 锁文件存在但无法获得，说明另一个线程已经在合并，当前线程无需等待，直接返回
+        return "chunk_uploaded", 200
+    except Exception as e:
+        # 其他异常
+        current_app.logger.error(
+            f"[Request {request_id}] 获取合并锁时发生错误: {str(e)}"
+        )
+        return "chunk_uploaded", 200
 
-        # 尝试获取锁
-        lock_acquired = False
+    # 获取锁后，再次检查临时目录是否存在（可能其他线程已完成合并并清理了目录）
+    if not os.path.exists(chunk_dir):
+        current_app.logger.warning(
+            f"[Request {request_id}] 临时目录不存在，但本线程已经获得锁，可能需要检查多线程逻辑"
+        )
+        # 关闭并删除锁文件
         try:
-            # 尝试创建锁文件，如果文件已存在会抛出异常
-            fd = os.open(lock_file_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.close(fd)
-            lock_acquired = True
-            current_app.logger.info(f"{request_id} 成功获取合并锁: {lock_file_path}")
-        except FileExistsError:
-            # 锁已被其他进程获取
+            if lock_fd is not None:
+                os.close(lock_fd)
+            os.remove(lock_file_path)
             current_app.logger.info(
-                f"{request_id} 合并锁已被占用，另一个线程正在进行合并: {lock_file_path}"
+                f"[Request {request_id}] 合并锁已释放: {lock_file_path}"
             )
-            # 锁文件存在但无法获得，说明另一个线程已经在合并，当前线程无需等待，直接返回
-            return "chunk_uploaded", 200
-        except Exception as e:
-            # 其他异常
-            current_app.logger.error(f"{request_id} 获取合并锁时发生错误: {str(e)}")
-            return "chunk_uploaded", 200
+        except:
+            pass
+        return "chunk_uploaded", 200
 
-        # 合并所有分块
-        final_file_path = merge_chunks(
-            chunk_dir, resumable_filename, resumable_total_chunks
+    # 合并所有分块
+    marged_file_in_temp_path = merge_chunks(
+        chunk_dir, resumable_filename, resumable_total_chunks
+    )
+
+    # 检查合并后的文件是否存在
+    if not os.path.exists(marged_file_in_temp_path):
+        current_app.logger.error(
+            f"[Request {request_id}] 合并出现意外，合并结果文件不存在: {marged_file_in_temp_path}"
         )
-
-        # 创建一个类文件对象供handle_file_upload使用
-        class UploadedFile:
-            def __init__(self, path, filename):
-                self.path = path
-                self.filename = filename
-                self.content_type = "application/octet-stream"  # 默认内容类型
-
-            def save(self, target_path):
-                os.rename(self.path, target_path)
-
-        file_upload = UploadedFile(final_file_path, resumable_filename)
-
-        # 准备handle_file_upload参数
-        upload_kwargs = {
-            "group_id": group.id,
-            "file": file_upload,
-            "upload_folder": current_app.config["UPLOAD_FOLDER"],
-            "uploader": request.args.get("uploader", "")
-            or request.form.get("uploader", "anonymous"),
-            "description": request.args.get("description", "")
-            or request.form.get("description", ""),
-            "comment": request.args.get("comment", "")
-            or request.form.get("comment", "常规上传"),
-        }
-
-        # 根据是否为新文件设置不同参数
-        if file_id:
-            # 版本上传
-            upload_kwargs["file_id"] = file_id
-            upload_kwargs["description"] = request.args.get(
-                "description", ""
-            ) or request.form.get("description", "")
-            upload_kwargs["comment"] = request.args.get(
-                "comment", ""
-            ) or request.form.get("comment", "版本更新")
-
-        # 处理文件上传
-        new_file = handle_file_upload(**upload_kwargs)
-        db.session.commit()
-
-        # 清理临时分块文件
-        cleanup_chunks(chunk_dir)
-
+        # 关闭并删除锁文件
+        try:
+            if lock_fd is not None:
+                os.close(lock_fd)
+            os.remove(lock_file_path)
+            current_app.logger.info(
+                f"[Request {request_id}] 合并锁已释放: {lock_file_path}"
+            )
+        except:
+            pass
         return (
             jsonify(
                 {
-                    "success": True,
-                    "message": "文件上传成功",
-                    "file_id": new_file.id,
+                    "error": "merge_failed",
+                    "message": "文件合并失败",
                     "group_id": group.id,
                 }
             ),
-            200,
+            500,
         )
-    else:
-        return "chunk_uploaded", 200
+
+    # 创建一个类文件对象供handle_file_upload使用
+    class UploadedFile:
+        def __init__(self, path, filename):
+            self.path = path
+            self.filename = filename
+            self.content_type = "application/octet-stream"  # 默认内容类型
+
+        def save(self, target_path):
+            os.rename(self.path, target_path)
+
+    file_upload = UploadedFile(marged_file_in_temp_path, resumable_filename)
+
+    # 这时候就可以关闭并删除锁文件了
+    try:
+        if lock_fd is not None:
+            os.close(lock_fd)
+        os.remove(lock_file_path)
+        current_app.logger.info(
+            f"[Request {request_id}] 合并锁已释放: {lock_file_path}"
+        )
+    except:
+        pass
+
+    # 准备handle_file_upload参数
+    upload_kwargs = {
+        "group_id": group.id,
+        "file": file_upload,
+        "upload_folder": current_app.config["UPLOAD_FOLDER"],
+        "uploader": request.args.get("uploader", "")
+        or request.form.get("uploader", "anonymous"),
+        "description": request.args.get("description", "")
+        or request.form.get("description", ""),
+        "comment": request.args.get("comment", "")
+        or request.form.get("comment", "常规上传"),
+    }
+
+    # 根据是否为新文件设置不同参数
+    if file_id:
+        # 版本上传
+        upload_kwargs["file_id"] = file_id
+        upload_kwargs["description"] = request.args.get(
+            "description", ""
+        ) or request.form.get("description", "")
+        upload_kwargs["comment"] = request.args.get("comment", "") or request.form.get(
+            "comment", "版本更新"
+        )
+
+    # 处理文件上传
+    new_file = handle_file_upload(**upload_kwargs)
+    db.session.commit()
+
+    # 清理临时分块文件
+    cleanup_chunks(chunk_dir)
+
+    # 最后检查一遍锁还在不在
+    if os.path.exists(lock_file_path):
+        current_app.logger.warning(
+            f"[Request {request_id}] 锁文件仍然存在，请检查合并逻辑: {lock_file_path}"
+        )
+
+    return (
+        jsonify(
+            {
+                "success": True,
+                "message": "文件上传成功",
+                "file_id": new_file.id,
+                "group_id": group.id,
+            }
+        ),
+        200,
+    )
 
 
 def all_chunks_uploaded(chunk_dir, total_chunks):
