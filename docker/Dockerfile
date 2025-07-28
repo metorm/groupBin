@@ -6,15 +6,24 @@ WORKDIR /app
 ARG USE_CHINA_PIP_MIRROR=false
 ARG PIP_MIRROR_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 
+# 定义参数，允许使用国内apt镜像加速依赖安装
+ARG USE_CHINA_APT_MIRROR=false
+ARG DEBIAN_APT_MIRROR_URL=mirrors.aliyun.com
+
 # 配置pip镜像源（如果启用）
 RUN if [ "$USE_CHINA_PIP_MIRROR" = "true" ]; then \
-        pip config set global.index-url $PIP_MIRROR_URL; \
+    pip config set global.index-url $PIP_MIRROR_URL; \
     fi
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
+# 配置国内apt镜像源并安装系统依赖
+RUN if [ "$USE_CHINA_APT_MIRROR" = "true" ]; then \
+    sed -i "s/deb.debian.org/$DEBIAN_APT_MIRROR_URL/g" /etc/apt/sources.list && \
+    sed -i "s/security.debian.org/$DEBIAN_APT_MIRROR_URL/g" /etc/apt/sources.list; \
+    fi && \
+    apt-get update && apt-get install -y \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt clean
 
 # 复制requirements并安装Python依赖
 COPY environment.yml .
