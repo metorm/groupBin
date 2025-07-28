@@ -2,11 +2,9 @@ version: '3.8'
 
 services:
   groupbin:
-    build: 
-      context: ../
-      dockerfile: docker/Dockerfile
+    image: groupbin:latest
     ports:
-      - "5000:5000"
+      - "5156:5000"
     environment:
       - PORT=5000
       - FLASK_CONFIG=production
@@ -16,3 +14,4 @@ services:
       - ./data:/data
       - ./config:/config
     restart: unless-stopped
+
