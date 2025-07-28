@@ -48,12 +48,29 @@ def handle_file_request(group_id, file_id=None):
     resumable_identifier = request.form.get("resumableIdentifier", "")
     resumable_filename = request.form.get("resumableFilename", "")
     resumable_chunk_number = request.form.get("resumableChunkNumber", "")
+    resumable_total_size = request.form.get("resumableTotalSize", "")
 
     # 也检查URL参数中的Resumable.js标识
     if not resumable_identifier:
         resumable_identifier = request.args.get("resumableIdentifier", "")
         resumable_filename = request.args.get("resumableFilename", "")
         resumable_chunk_number = request.args.get("resumableChunkNumber", "")
+        resumable_total_size = request.args.get("resumableTotalSize", "")
+
+    # 检查文件大小是否超过限制
+    if resumable_total_size:
+        max_size = current_app.config.get("MAX_UPLOAD_SIZE_MB", 10 * 1024 * 1024)  # 默认10MB
+        if int(resumable_total_size) > max_size:
+            return (
+                jsonify(
+                    {
+                        "error": "file_too_large",
+                        "message": f"文件大小超过限制 ({max_size / 1024 / 1024:.1f} MB)",
+                        "max_size": max_size,
+                    }
+                ),
+                413,
+            )
 
     if resumable_identifier:
         # 处理Resumable.js上传
@@ -123,9 +140,51 @@ def handle_resumable_upload(
     chunk_file = os.path.join(chunk_dir, str(resumable_chunk_number))
     uploaded_file = request.files["file"]
 
+    # 检查当前分块是否会导致总大小超过限制
+    # 注意：这个检查只在第一个分块时有效，因为其他分块可能已经上传了
+    if resumable_chunk_number == "1":
+        max_size = current_app.config.get("MAX_UPLOAD_SIZE_MB", 10 * 1024 * 1024)  # 默认10MB
+        resumable_total_size = int(request.form.get("resumableTotalSize", 0))
+        if resumable_total_size > max_size:
+            # 清理已创建的目录
+            import shutil
+            shutil.rmtree(chunk_dir, ignore_errors=True)
+            return (
+                jsonify(
+                    {
+                        "error": "file_too_large",
+                        "message": f"文件大小超过限制 ({max_size / 1024 / 1024:.1f} MB)",
+                        "max_size": max_size,
+                    }
+                ),
+                413,
+            )
+
     # 使用.un-complete后缀，防止文件写入过程中被其他线程误认为已完成
     chunk_file_temp = chunk_file + ".un-complete"
     uploaded_file.save(chunk_file_temp)
+
+    # 检查分片大小是否与声明的一致，防止恶意攻击者绕过限制
+    resumable_current_chunk_size = int(
+        request.form.get("resumableCurrentChunkSize", 0)
+    )
+    actual_chunk_size = os.path.getsize(chunk_file_temp)
+    
+    if resumable_current_chunk_size != actual_chunk_size:
+        # 分片大小不一致，可能是恶意攻击
+        os.remove(chunk_file_temp)
+        current_app.logger.warning(
+            f"分片大小不一致，声明大小: {resumable_current_chunk_size}, 实际大小: {actual_chunk_size}"
+        )
+        return (
+            jsonify(
+                {
+                    "error": "chunk_size_mismatch",
+                    "message": "分片大小与声明不一致",
+                }
+            ),
+            400,
+        )
 
     # 确保文件完全写入磁盘后再重命名
     os.rename(chunk_file_temp, chunk_file)

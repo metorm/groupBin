@@ -8,6 +8,7 @@
  * @param {string} options.fileId - 文件ID（用于版本上传）
  * @param {boolean} options.isVersionUpload - 是否为版本上传
  * @param {number} options.chunkSize - 分片大小（字节）
+ * @param {number} options.maxFileSize - 最大文件大小（字节）
  */
 function initializeResumableUpload(options) {
     // 检查必要的元素是否存在
@@ -76,6 +77,12 @@ function initializeResumableUpload(options) {
         fileInput.addEventListener('change', function (e) {
             if (this.files) {
                 for (var i = 0; i < this.files.length; i++) {
+                    // 检查文件大小是否超过限制
+                    if (options.maxFileSize && this.files[i].size > options.maxFileSize) {
+                        alert('文件 "' + this.files[i].name + '" 大小超过限制 (' + 
+                              formatFileSize(options.maxFileSize) + ')，无法上传。');
+                        continue;
+                    }
                     r.addFile(this.files[i]);
                 }
                 this.value = ''; // 清空输入框，以便下次选择相同文件时也能触发change事件
@@ -84,6 +91,14 @@ function initializeResumableUpload(options) {
 
         // 文件添加事件
         r.on('fileAdded', function (file) {
+            // 再次检查文件大小（拖拽文件等情况）
+            if (options.maxFileSize && file.size > options.maxFileSize) {
+                alert('文件 "' + file.name + '" 大小超过限制 (' + 
+                      formatFileSize(options.maxFileSize) + ')，无法上传。');
+                r.removeFile(file);
+                return false;
+            }
+            
             updateFileList();
             document.getElementById('resumable-upload').disabled = false;
         });
@@ -229,7 +244,7 @@ function initializeResumableUpload(options) {
             // 填充文件列表
             for (var i = 0; i < r.files.length; i++) {
                 var file = r.files[i];
-                var fileSize = formatFileSize(file.size);
+                var fileSize = window.formatFileSize(file.size);
                 var listItem = document.createElement('li');
                 listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
                 listItem.innerHTML = `

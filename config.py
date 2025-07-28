@@ -24,7 +24,7 @@ class Config:
     # 处理相对路径，转换为绝对路径
     if not os.path.isabs(UPLOAD_FOLDER):
         UPLOAD_FOLDER = os.path.abspath(os.path.join(os.getcwd(), UPLOAD_FOLDER))
-    MAX_CONTENT_LENGTH = (
+    MAX_UPLOAD_SIZE_MB = (
         int(os.getenv("MAX_UPLOAD_SIZE_MB")) * 1024 * 1024
     )  # 从MB转换为字节
     # 分片大小配置
