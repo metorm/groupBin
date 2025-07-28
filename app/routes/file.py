@@ -447,11 +447,25 @@ def download_version(group_id, file_id, version_id):
         # abort(404, description=f"File not found: {version.stored_filename}")
 
     # 使用绝对路径调用send_from_directory
+    # 如果文件有多个版本，则在文件名中添加版本号
+    download_name = file.original_filename
+    if len(file.versions) > 1:
+        # 确定版本号（按上传时间正序，最早的版本是_v1）
+        version_numbers = sorted(file.versions, key=lambda v: v.uploaded_at, reverse=False)
+        version_index = version_numbers.index(version) + 1
+        # 在文件扩展名前添加版本号
+        if '.' in download_name:
+            name_parts = download_name.split('.')
+            name_parts[-2] += f'_v{version_index}'
+            download_name = '.'.join(name_parts)
+        else:
+            download_name += f'_v{version_index}'
+    
     return send_from_directory(
         os.path.dirname(file_path),
         os.path.basename(file_path),
         as_attachment=True,
-        download_name=file.original_filename,
+        download_name=download_name,
     )
 
 
