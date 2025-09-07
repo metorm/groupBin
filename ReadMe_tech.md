@@ -144,7 +144,6 @@ groupbin/
 - `SITE_DESCRIPTION`: 站点描述
 - `FOOTER_TEXT`: 页脚文本
 - `AUTH_DELAY_SECONDS`: 认证延迟时间（秒）
-- `EXPIRED_FILE_CLEANUP_DAYS`: 过期文件清理天数
 - `UNIFIED_PUBLIC_PASSWORD`: 统一密码
 
 #### 两个隐藏的设置项
