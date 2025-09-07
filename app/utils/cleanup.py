@@ -5,7 +5,7 @@ from threading import Thread, Event
 import time
 from app import db
 from app.models import Group, File, FileVersion
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class CleanupTask:
             return
             
         # 检查是否启用清理任务（如果间隔设置为0或负数，则不启动）
-        interval = max(self.app.config.get('CLEAN_INTERVAL_HOUR', 3), 1/6)
+        interval = self.app.config.get('CLEAN_INTERVAL_HOUR')
         if interval <= 0:
             logger.info("清理任务间隔设置为0或负数，不启动清理任务")
             return
@@ -43,7 +43,7 @@ class CleanupTask:
 
     def _run(self):
         """运行定时清理任务"""
-        interval = max(self.app.config.get('CLEAN_INTERVAL_HOUR', 3), 1/6) * 3600  # 转换为秒，最小10分钟
+        interval = self.app.config.get('CLEAN_INTERVAL_HOUR') * 3600  # 转换为秒，最小10分钟
         
         while not self.stop_event.wait(interval):
             try:
@@ -65,12 +65,15 @@ class CleanupTask:
             # 清理文件系统中的孤立文件
             self._cleanup_orphaned_files_on_disk()
             
+            # 清理过期的session文件
+            self._cleanup_expired_sessions()
+            
         logger.info("定时清理任务执行完成")
 
     def _cleanup_expired_groups(self):
         """清理过期的小组"""
-        delete_from_db_hours = max(self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_FROM_DB', 144), 1/6)
-        delete_data_hours = max(self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_DATA', 72), 1/6)
+        delete_from_db_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_FROM_DB', 144)
+        delete_data_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_DATA', 72)
         
         cutoff_time_db = datetime.now(timezone.utc) - timedelta(hours=delete_from_db_hours)
         cutoff_time_data = datetime.now(timezone.utc) - timedelta(hours=delete_data_hours)
@@ -160,3 +163,31 @@ class CleanupTask:
         if orphaned_files or orphaned_versions:
             db.session.commit()
             logger.info(f"清理了 {len(orphaned_files)} 个孤立文件记录和 {len(orphaned_versions)} 个孤立文件版本记录")
+
+    def _cleanup_expired_sessions(self):
+        """清理过期的session文件"""
+        session_dir = self.app.config.get('SESSION_FILE_DIR')
+        if not session_dir or not os.path.exists(session_dir):
+            return
+            
+        # 计算过期时间（使用数据库删除时间作为session过期时间）
+        session_lifetime_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_FROM_DB', 144)
+        cutoff_time = time.time() - (session_lifetime_hours * 3600)
+        
+        deleted_count = 0
+        try:
+            # 遍历session目录下的所有文件
+            for item in os.listdir(session_dir):
+                item_path = os.path.join(session_dir, item)
+                # 检查是否为文件（而非目录）且已过期
+                if os.path.isfile(item_path) and os.path.getmtime(item_path) < cutoff_time:
+                    try:
+                        os.remove(item_path)
+                        deleted_count += 1
+                        logger.info(f"删除过期session文件: {item_path}")
+                    except Exception as e:
+                        logger.error(f"删除过期session文件失败 {item_path}: {e}")
+                        
+            logger.info(f"清理了 {deleted_count} 个过期session文件")
+        except Exception as e:
+            logger.error(f"清理session文件时出错: {e}")
