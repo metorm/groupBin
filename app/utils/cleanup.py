@@ -122,6 +122,12 @@ class CleanupTask:
             
             # 如果是目录且不是任何现有小组的目录，则删除
             if os.path.isdir(item_path) and item not in group_ids:
+                # 检查是否为tmp目录（用于分片上传的临时目录）
+                if item == 'tmp':
+                    # 清理tmp目录中的过期临时文件
+                    self._cleanup_expired_temp_files(item_path)
+                    continue
+                    
                 try:
                     import shutil
                     shutil.rmtree(item_path)
@@ -142,20 +148,66 @@ class CleanupTask:
                     except Exception as e:
                         logger.error(f"删除孤立文件失败 {item_path}: {e}")
 
+    def _cleanup_expired_temp_files(self, tmp_dir):
+        """清理tmp目录中过期的临时文件"""
+        if not os.path.exists(tmp_dir):
+            return
+            
+        # 设置过期时间（默认24小时）
+        expiration_hours = self.app.config.get('TEMP_FILE_EXPIRATION_HOURS', 24)
+        cutoff_time = time.time() - (expiration_hours * 3600)
+        
+        try:
+            # 遍历tmp目录下的所有项目
+            for item in os.listdir(tmp_dir):
+                item_path = os.path.join(tmp_dir, item)
+                
+                # 检查是否为目录（每个上传任务的临时目录）
+                if os.path.isdir(item_path):
+                    # 检查目录的修改时间判断是否过期
+                    dir_mtime = os.path.getmtime(item_path)
+                    if dir_mtime < cutoff_time:
+                        # 目录已过期，删除它
+                        try:
+                            import shutil
+                            shutil.rmtree(item_path)
+                            logger.info(f"删除过期临时目录: {item_path}")
+                        except Exception as e:
+                            logger.error(f"删除过期临时目录失败 {item_path}: {e}")
+                    # 如果目录未过期，则保留它（可能正在上传中）
+                
+                # 检查是否为锁文件
+                elif os.path.isfile(item_path) and item.endswith('.lock'):
+                    # 检查锁文件的修改时间判断是否过期
+                    lock_mtime = os.path.getmtime(item_path)
+                    if lock_mtime < cutoff_time:
+                        # 锁文件已过期，删除它
+                        try:
+                            os.remove(item_path)
+                            logger.info(f"删除过期锁文件: {item_path}")
+                        except Exception as e:
+                            logger.error(f"删除过期锁文件失败 {item_path}: {e}")
+                    # 如果锁文件未过期，则保留它（可能正在合并中）
+                        
+        except Exception as e:
+            logger.error(f"清理临时文件时出错: {e}")
+
     def _cleanup_orphaned_files(self):
         """清理数据库中孤立的文件记录"""
         # 获取所有存在的小组ID
-        group_ids = [str(group.id) for group in Group.query.all()]
+        group_ids = [group.id for group in Group.query.all()]
         
         # 查找不属于任何现有小组的文件
-        orphaned_files = File.query.filter(~File.group_id.in_(group_ids)).all()
+        # 将File.group_id转换为字符串进行比较
+        orphaned_files = File.query.filter(~File.group_id.cast(db.String).in_([str(gid) for gid in group_ids])).all()
         for file in orphaned_files:
             logger.info(f"删除孤立文件记录: {file.original_filename} (ID: {file.id})")
             db.session.delete(file)
             
         # 查找不属于任何现有文件的文件版本
-        file_ids = [str(file.id) for file in File.query.all()]
-        orphaned_versions = FileVersion.query.filter(~FileVersion.file_id.in_(file_ids)).all()
+        file_ids = [file.id for file in File.query.all()]
+        # 将FileVersion.file_id转换为字符串进行比较
+        orphaned_versions = FileVersion.query.filter(~FileVersion.file_id.cast(db.String).in_([str(fid) for fid in file_ids])).all()
         for version in orphaned_versions:
             logger.info(f"删除孤立文件版本记录: {version.id}")
             db.session.delete(version)
