@@ -25,19 +25,19 @@ class Config:
     if not os.path.isabs(UPLOAD_FOLDER):
         UPLOAD_FOLDER = os.path.abspath(os.path.join(os.getcwd(), UPLOAD_FOLDER))
     MAX_UPLOAD_SIZE_MB = (
-        int(os.getenv("MAX_UPLOAD_SIZE_MB", 10)) * 1024 * 1024
+        int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
     )  # 从MB转换为字节
     # 分片大小配置
-    CHUNK_SIZE = int(os.getenv("CHUNK_SIZE_MB", 5)) * 1024 * 1024  # 从MB转换为字节
+    CHUNK_SIZE = int(os.getenv("CHUNK_SIZE_MB", "5")) * 1024 * 1024  # 从MB转换为字节
     # 文件操作最大等待时间（毫秒）
     FILE_MOVE_OPERATION_MAX_WAIT_MS = int(
-        os.getenv("FILE_MOVE_OPERATION_MAX_WAIT_MS", 3000)
+        os.getenv("FILE_MOVE_OPERATION_MAX_WAIT_MS", "3000")
     )
 
     # 小组配置
-    MAX_RECENT_GROUPS = int(os.getenv("MAX_RECENT_GROUPS"))
-    DEFAULT_GROUP_DURATION = int(os.getenv("DEFAULT_GROUP_DURATION_HOURS"))
-    MAX_GROUP_DURATION = int(os.getenv("MAX_GROUP_DURATION_HOURS"))
+    MAX_RECENT_GROUPS = int(os.getenv("MAX_RECENT_GROUPS", "10"))
+    DEFAULT_GROUP_DURATION = int(os.getenv("DEFAULT_GROUP_DURATION_HOURS", "72"))
+    MAX_GROUP_DURATION = int(os.getenv("MAX_GROUP_DURATION_HOURS", "720"))
 
     # 前端配置
     SITE_NAME = os.getenv("SITE_NAME")
@@ -45,8 +45,8 @@ class Config:
     FOOTER_TEXT = os.getenv("FOOTER_TEXT")
 
     # 系统配置
-    AUTH_DELAY_SECONDS = int(os.getenv("AUTH_DELAY_SECONDS"))
-    EXPIRED_FILE_CLEANUP_DAYS = int(os.getenv("EXPIRED_FILE_CLEANUP_DAYS"))
+    AUTH_DELAY_SECONDS = int(os.getenv("AUTH_DELAY_SECONDS", "2"))
+    EXPIRED_FILE_CLEANUP_DAYS = int(os.getenv("EXPIRED_FILE_CLEANUP_DAYS", "7"))
     UNIFIED_PUBLIC_PASSWORD = os.getenv("UNIFIED_PUBLIC_PASSWORD")
     CREATE_GROUP_PUBLIC_PASSWORD = os.getenv("CREATE_GROUP_PUBLIC_PASSWORD")
 

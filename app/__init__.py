@@ -67,8 +67,8 @@ def setup_logging(app):
         # 创建RotatingFileHandler
         file_handler = RotatingFileHandler(
             app.config["LOG_FILE"],
-            maxBytes=app.config.get("LOG_FILE_MAX_SIZE", 10 * 1024 * 1024),  # 默认10MB
-            backupCount=app.config.get("LOG_FILE_BACKUP_COUNT", 5),  # 默认保留5个备份
+            maxBytes=app.config.get("LOG_FILE_MAX_SIZE"),  # 使用配置的大小限制
+            backupCount=app.config.get("LOG_FILE_BACKUP_COUNT"),  # 使用配置的备份数量
         )
 
         # 设置纯文本日志格式
@@ -78,12 +78,18 @@ def setup_logging(app):
         file_handler.setFormatter(file_formatter)
         file_handler.setLevel(log_level)
 
+        # 添加处理器到app.logger和根日志记录器
+        app.logger.addHandler(file_handler)
+        
         root_logger = logging.getLogger()
         root_logger.addHandler(file_handler)
         root_logger.setLevel(log_level)
 
         app.logger.info(
-            "RotatingFileHandler configured for: %s", app.config["LOG_FILE"]
+            "RotatingFileHandler configured for: %s with maxBytes: %d, backupCount: %d", 
+            app.config["LOG_FILE"], 
+            app.config.get("LOG_FILE_MAX_SIZE"),
+            app.config.get("LOG_FILE_BACKUP_COUNT")
         )
 
 
