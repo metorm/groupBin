@@ -222,8 +222,8 @@ class CleanupTask:
         if not session_dir or not os.path.exists(session_dir):
             return
             
-        # 计算过期时间（使用数据库删除时间作为session过期时间）
-        session_lifetime_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_FROM_DB', 144)
+        # 计算过期时间
+        session_lifetime_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_CLIENT_SESSION', 720)
         cutoff_time = time.time() - (session_lifetime_hours * 3600)
         
         deleted_count = 0
