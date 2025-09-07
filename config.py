@@ -70,6 +70,11 @@ class Config:
         os.getenv("LOG_FILE_BACKUP_COUNT", "5")
     )  # 日志文件备份数量，默认5个
 
+    # 定时清理配置（最小值设置为10分钟，方便测试）
+    CLEAN_INTERVAL_HOUR = max(float(os.getenv("CLEAN_INTERVAL_HOUR", "3")), 1/6)  # 清理任务执行间隔（小时），最小10分钟
+    CLEAN_INTERVAL_HOUR_DELETE_DATA = max(float(os.getenv("CLEAN_INTERVAL_HOUR_DELETE_DATA", "72")), 1/6)  # 删除过期数据文件的时间（小时），最小10分钟
+    CLEAN_INTERVAL_HOUR_DELETE_FROM_DB = max(float(os.getenv("CLEAN_INTERVAL_HOUR_DELETE_FROM_DB", "144")), 1/6)  # 从数据库删除过期记录的时间（小时），最小10分钟
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

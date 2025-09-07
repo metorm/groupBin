@@ -25,6 +25,9 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 
+# 初始化清理任务
+cleanup_task = None
+
 
 def log_configuration(app):
     """将配置信息输出到日志中"""
@@ -162,6 +165,12 @@ def create_app(config_name=None):
         except Exception as e:
             app.logger.error("Failed to create database tables: %s", str(e))
             raise
+
+    # 初始化定时清理任务
+    from app.utils.cleanup import CleanupTask
+    global cleanup_task
+    cleanup_task = CleanupTask(app)
+    cleanup_task.start()
 
     # 验证关键配置
     required_configs = ["SECRET_KEY", "UPLOAD_FOLDER", "SQLALCHEMY_DATABASE_URI"]
