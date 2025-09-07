@@ -83,8 +83,8 @@ class Config:
     CLEAN_INTERVAL_HOUR_DELETE_CLIENT_SESSION = max(
         float(os.getenv("CLEAN_INTERVAL_HOUR_DELETE_CLIENT_SESSION", "720")), 1 / 60
     )  # 客户端session文件过期时间（小时），最小1分钟
-    TEMP_FILE_EXPIRATION_HOURS = int(
-        os.getenv("TEMP_FILE_EXPIRATION_HOURS", "24")
+    TEMP_FILE_EXPIRATION_HOURS = max(
+        float(os.getenv("TEMP_FILE_EXPIRATION_HOURS", "24")), 1 / 60
     )  # 临时文件过期时间（小时），用于清理上传过程中的临时文件
 
 
