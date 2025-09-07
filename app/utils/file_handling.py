@@ -33,7 +33,7 @@ def handle_file_upload(
 
     # 等待文件完全写入磁盘
     max_wait_time = (
-        current_app.config.get("FILE_MOVE_OPERATION_MAX_WAIT_MS", 3000) / 1000.0
+        current_app.config.get("FILE_MOVE_OPERATION_MAX_WAIT_MS") / 1000.0
     )  # 转换为秒
     wait_interval = 0.25
     elapsed_time = 0

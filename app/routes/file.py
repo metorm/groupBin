@@ -59,7 +59,7 @@ def handle_file_request(group_id, file_id=None):
 
     # 检查文件大小是否超过限制
     if resumable_total_size:
-        max_size = current_app.config.get("MAX_UPLOAD_SIZE_MB", 10 * 1024 * 1024)  # 默认10MB
+        max_size = current_app.config.get("MAX_UPLOAD_SIZE_MB")
         if int(resumable_total_size) > max_size:
             return (
                 jsonify(

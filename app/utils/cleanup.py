@@ -22,7 +22,7 @@ class CleanupTask:
             return
             
         # 检查是否启用清理任务（如果间隔设置为0或负数，则不启动）
-        interval = self.app.config.get('CLEAN_INTERVAL_HOUR')
+        interval = self.app.config['CLEAN_INTERVAL_HOUR']
         if interval <= 0:
             logger.info("清理任务间隔设置为0或负数，不启动清理任务")
             return
@@ -43,7 +43,7 @@ class CleanupTask:
 
     def _run(self):
         """运行定时清理任务"""
-        interval = self.app.config.get('CLEAN_INTERVAL_HOUR') * 3600  # 转换为秒，最小10分钟
+        interval = self.app.config.get('CLEAN_INTERVAL_HOUR') * 3600  # 转换为秒
         
         while not self.stop_event.wait(interval):
             try:
@@ -72,8 +72,8 @@ class CleanupTask:
 
     def _cleanup_expired_groups(self):
         """清理过期的小组"""
-        delete_from_db_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_FROM_DB', 144)
-        delete_data_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_DATA', 72)
+        delete_from_db_hours = self.app.config['CLEAN_INTERVAL_HOUR_DELETE_FROM_DB']
+        delete_data_hours = self.app.config['CLEAN_INTERVAL_HOUR_DELETE_DATA']
         
         cutoff_time_db = datetime.now(timezone.utc) - timedelta(hours=delete_from_db_hours)
         cutoff_time_data = datetime.now(timezone.utc) - timedelta(hours=delete_data_hours)
@@ -154,7 +154,7 @@ class CleanupTask:
             return
             
         # 设置过期时间（默认24小时）
-        expiration_hours = self.app.config.get('TEMP_FILE_EXPIRATION_HOURS', 24)
+        expiration_hours = self.app.config['TEMP_FILE_EXPIRATION_HOURS']
         cutoff_time = time.time() - (expiration_hours * 3600)
         
         try:
@@ -223,7 +223,7 @@ class CleanupTask:
             return
             
         # 计算过期时间
-        session_lifetime_hours = self.app.config.get('CLEAN_INTERVAL_HOUR_DELETE_CLIENT_SESSION', 720)
+        session_lifetime_hours = self.app.config['CLEAN_INTERVAL_HOUR_DELETE_CLIENT_SESSION']
         cutoff_time = time.time() - (session_lifetime_hours * 3600)
         
         deleted_count = 0
