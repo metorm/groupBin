@@ -84,6 +84,33 @@
 + 文件储存根目录
 + 密码鉴权的延迟时间（默认2秒）
 
+## 特别说明：caddy
+
+如果使用caddy反向代理，目前需要做如下设置：
+
+```
+xxx.xxx.com {
+       tls xxx@xx.com {
+               alpn http/1.1
+       }
+       encode gzip zstd
+
+       request_body {
+               max_size 256MB
+       }
+
+       reverse_proxy 192.168.1.1:5156 {
+               flush_interval -1
+       }
+}
+```
+
+使用http 1.1是为了确保大文件下载稳定（上传一直都很稳定），原因还没搞清楚，欢迎指导。
+
+这个事情很玄幻，但事实存在，去掉`alpn http/1.1`的话，下载超过约50M的文件就不稳定。好在不影响功能，只是疑惑。
+
+其他的反向代理机制暂不清楚，需要测试。
+
 # 技术架构
 
 有关详细的技术架构信息，请参阅 [技术文档](ReadMe_tech.md)。
